@@ -17,7 +17,11 @@ Auto-detects the CSV separator. Zeros in numeric columns (except column 1)
 are converted to NA to represent absence.
 }
 \examples{
+# Load the bundled example dataset
+df <- read_qw_data(example_data_path())
+
 \dontrun{
+# Or load your own file
 df <- read_qw_data("my_graves.csv")
 }
 }

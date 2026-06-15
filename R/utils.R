@@ -70,7 +70,11 @@ identify_count_columns <- function(df) {
 #' @return A data frame with zeros converted to NA in numeric columns.
 #' @export
 #' @examples
+#' # Load the bundled example dataset
+#' df <- read_qw_data(example_data_path())
+#'
 #' \dontrun{
+#' # Or load your own file
 #' df <- read_qw_data("my_graves.csv")
 #' }
 read_qw_data <- function(filepath) {

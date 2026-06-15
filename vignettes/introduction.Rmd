@@ -83,32 +83,15 @@ df <- read_qw_data("my_graves.xlsx")
 # (just make sure 0s are NA for absent types)
 ```
 
-For this vignette we use a small built-in example:
+For this vignette we use the bundled example dataset — 15 fictional graves with 11 artefact types, illustrating the expected data format:
 
 ```{r example_data}
 library(QuantWealthR)
 
-set.seed(42)
-n <- 80  # enough graves for clear boxplots
+# Load the bundled example data
+df <- read_qw_data(example_data_path())
 
-# Types range from very common (low prestige) to rare (high prestige)
-df <- data.frame(
-  grave_id   = paste0("G", 1:n),
-  # Very common — found in most graves → low prestige
-  pot        = ifelse(runif(n) < 0.85, sample(1:3, n, replace = TRUE), NA),
-  flint      = ifelse(runif(n) < 0.75, 1L, NA),
-  bone_tool  = ifelse(runif(n) < 0.60, 1L, NA),
-  # Moderately common
-  bronze_pin = ifelse(runif(n) < 0.40, sample(1:2, n, replace = TRUE), NA),
-  amber_bead = ifelse(runif(n) < 0.30, sample(1:8, n, replace = TRUE), NA),
-  # Rare — found mainly in richly furnished graves → high prestige
-  sword      = ifelse(runif(n) < 0.15, sample(1:2, n, replace = TRUE), NA),
-  gold_ring  = ifelse(runif(n) < 0.08, 1L, NA),
-  adult_count    = sample(1:2, n, replace = TRUE),
-  subadult_count = 0L
-)
-
-head(df[, 1:8])
+head(df)
 ```
 
 ### Step 2: Calculate prestige values
@@ -128,7 +111,7 @@ pres <- calculate_prestige(df, method = "bayesian", use_age_sep = TRUE)
 #   raw_TOT        — count of types present in each grave
 #   prestige_total — sum of prestige weights
 #   combined_total — prestige_total + sqrt-count bonus (main wealth measure)
-pres[1:6, c("grave_id", "raw_TOT", "prestige_total", "combined_total")]
+pres[1:6, c("Grave_ID", "raw_TOT", "prestige_total", "combined_total")]
 ```
 
 **Choosing a method:**
@@ -215,7 +198,6 @@ Artefact category definitions are researcher choices. The same bronze object mig
 The IQR of simulated Ginis across 100–200 iterations shows the plausible range your results could take under different recording conventions.
 
 ```{r bias, fig.height = 6}
-set.seed(42)
 bias <- simulate_category_bias(df,
                                 graves = "adults",  # use adult graves only
                                 n_sims = 100)
@@ -293,13 +275,13 @@ plot_physical_panel(areas,
 When your dataset has multiple phases, periods, or sites, use `qw_pipeline()` to run everything at once.
 
 ```{r pipeline}
-# Add a grouping column to the example data
+# Split the example graves into three fictitious phases for demonstration
 df_multi <- df
 df_multi$phase <- rep(c("Early", "Middle", "Late"), length.out = nrow(df_multi))
 
 result <- qw_pipeline(df_multi,
                        group_col = "phase",
-                       id_col    = "grave_id",
+                       id_col    = "Grave_ID",
                        method    = "bayesian")
 
 # Summary table: one row per case
