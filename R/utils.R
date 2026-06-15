@@ -108,3 +108,18 @@ read_qw_data <- function(filepath) {
   if (max(counts) == 0) return(";")
   seps[which.max(counts)]
 }
+
+
+#' Path to the bundled example dataset
+#'
+#' Returns the file path to the example CSV included with the package.
+#' Use with [read_qw_data()] to load it.
+#'
+#' @return A character string file path.
+#' @examples
+#' path <- example_data_path()
+#' df <- read_qw_data(path)
+#' @export
+example_data_path <- function() {
+  system.file("extdata", "quantwealth_example.csv", package = "QuantWealthR")
+}

@@ -4,7 +4,7 @@
 \alias{plot_bias}
 \title{Plot category bias simulation results (2x2 faceted jitter plot)}
 \usage{
-plot_bias(bias_result, case = NULL, dates = NULL)
+plot_bias(bias_result, case = NULL, dates = NULL, .title_override = NULL)
 }
 \arguments{
 \item{bias_result}{Output from \code{\link[=simulate_category_bias]{simulate_category_bias()}}.}
