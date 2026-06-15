@@ -1,0 +1,110 @@
+# ---- Internal utility functions ----
+
+#' Null-coalescing operator
+#' @noRd
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+
+#' Format BCE/CE year range as a readable string
+#'
+#' @param start_year Numeric. Start year (negative = BCE).
+#' @param end_year Numeric. End year (negative = BCE).
+#' @return Character string such as "2500 - 2200 BCE".
+#' @export
+#' @examples
+#' format_dates(-2500, -2200)
+#' format_dates(-100, 300)
+#' format_dates(1000, 1200)
+format_dates <- function(start_year, end_year) {
+  fmt <- function(y) if (y < 0) paste0(abs(y), " BCE") else paste0(y, " CE")
+  if (start_year < 0 && end_year < 0) {
+    paste0(abs(start_year), " - ", abs(end_year), " BCE")
+  } else if (start_year >= 0 && end_year >= 0) {
+    paste0(start_year, " - ", end_year, " CE")
+  } else {
+    paste0(fmt(start_year), " - ", fmt(end_year))
+  }
+}
+
+
+#' Identify count data columns in a data frame
+#'
+#' Returns names of columns that are purely numeric and not metadata columns
+#' (lat, lng, adult_count, subadult_count, etc.). The first column (ID) is
+#' always excluded.
+#'
+#' @param df A data frame. First column should be the unit ID.
+#' @return Character vector of count-data column names.
+#' @export
+#' @examples
+#' df <- data.frame(id = 1:5, sword = c(1,0,2,0,1), shield = c(0,1,0,1,0))
+#' identify_count_columns(df)
+identify_count_columns <- function(df) {
+  col_names       <- names(df)
+  col_names_lower <- tolower(col_names)
+  excluded        <- c("lat", "lng", "adult_count", "subadult_count",
+                       "prestige_total", "combined_total", "tot",
+                       "is_adult_grave", "is_subadult_only")
+
+  result <- character(0)
+  for (i in seq(2, ncol(df))) {
+    nm <- col_names[i]
+    if (is.na(nm) || nchar(trimws(nm)) == 0) next
+    if (tolower(nm) %in% excluded) next
+    vals         <- df[[i]]
+    non_na       <- vals[!is.na(vals)]
+    if (length(non_na) == 0) next
+    numeric_vals <- suppressWarnings(as.numeric(non_na))
+    if (!any(is.na(numeric_vals))) result <- c(result, nm)
+  }
+  result
+}
+
+
+#' Read a CSV or Excel data file and clean zeros to NA
+#'
+#' Auto-detects the CSV separator. Zeros in numeric columns (except column 1)
+#' are converted to NA to represent absence.
+#'
+#' @param filepath Path to a CSV (.csv) or Excel (.xlsx / .xls) file.
+#' @return A data frame with zeros converted to NA in numeric columns.
+#' @export
+#' @examples
+#' \dontrun{
+#' df <- read_qw_data("my_graves.csv")
+#' }
+read_qw_data <- function(filepath) {
+  ext <- tolower(tools::file_ext(filepath))
+  if (ext %in% c("xlsx", "xls")) {
+    if (!requireNamespace("readxl", quietly = TRUE))
+      stop("Package 'readxl' is required to read Excel files.")
+    df <- as.data.frame(readxl::read_excel(filepath))
+  } else {
+    sep <- .auto_detect_sep(filepath)
+    df  <- read.csv(filepath, sep = sep, stringsAsFactors = FALSE)
+  }
+  if (ncol(df) > 1) {
+    for (i in 2:ncol(df)) {
+      num <- suppressWarnings(as.numeric(df[[i]]))
+      if (!all(is.na(num))) {
+        num[num == 0] <- NA
+        df[[i]] <- num
+      }
+    }
+  }
+  df
+}
+
+
+.auto_detect_sep <- function(filepath) {
+  lines <- readLines(filepath, n = 5, warn = FALSE)
+  if (length(lines) == 0) return(";")
+  seps   <- c(";", ",", "\t")
+  counts <- sapply(seps, function(s) {
+    median(sapply(lines, function(l)
+      length(gregexpr(s, l, fixed = TRUE)[[1]])), na.rm = TRUE)
+  })
+  counts[is.na(counts)] <- 0
+  if (max(counts) == 0) return(";")
+  seps[which.max(counts)]
+}

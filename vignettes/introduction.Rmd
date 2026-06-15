@@ -1,0 +1,410 @@
+---
+title: "Introduction to QuantWealthR"
+author: "Mikkel Nørtoft"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to QuantWealthR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 4.5
+)
+```
+
+## Overview
+
+QuantWealthR computes prestige values, wealth scores, and inequality measures from archaeological count data (grave goods, hoard types, house objects) and physical measures (house floor area, mound volume, etc.). All results match the [QuantWealth online app](https://quantwealth.eu) exactly.
+
+The typical workflow has three steps:
+
+1. **Load and prepare** your data
+2. **Calculate** prestige values and inequality
+3. **Visualise** results
+
+---
+
+## Data format
+
+### Count data
+
+Your CSV or Excel file should have:
+
+- **Column 1**: unit ID (grave number, feature label, etc.)
+- **Columns 2+**: numeric counts — one column per artefact type
+- **Optional**: `adult_count` and `subadult_count` columns for age-separated analysis
+- **Optional**: `lat` and `lng` columns (ignored by analysis, preserved in output)
+
+Absent artefacts should be `0` or left blank (NA). `read_qw_data()` converts zeros to NA automatically.
+
+```
+grave_id | sword | shield | bronze | adult_count | subadult_count
+---------|-------|--------|--------|-------------|---------------
+G001     |     1 |     NA |      2 |           1 |              0
+G002     |    NA |      1 |     NA |           1 |              0
+G003     |     2 |      1 |     NA |           2 |              0
+G004     |    NA |     NA |      1 |           0 |              1
+```
+
+### Physical measure data
+
+Two columns: unit ID and the measure value.
+
+```
+house_id | area_m2
+---------|--------
+H001     |    45.2
+H002     |    72.8
+H003     |   120.0
+```
+
+---
+
+## Count data workflow
+
+### Step 1: Load data
+
+```{r load, eval = FALSE}
+library(QuantWealthR)
+
+# From a CSV file (separator auto-detected)
+df <- read_qw_data("my_graves.csv")
+
+# Or from Excel
+df <- read_qw_data("my_graves.xlsx")
+
+# Or pass a data frame you already have in R
+# (just make sure 0s are NA for absent types)
+```
+
+For this vignette we use a small built-in example:
+
+```{r example_data}
+library(QuantWealthR)
+
+set.seed(42)
+n <- 80  # enough graves for clear boxplots
+
+# Types range from very common (low prestige) to rare (high prestige)
+df <- data.frame(
+  grave_id   = paste0("G", 1:n),
+  # Very common — found in most graves → low prestige
+  pot        = ifelse(runif(n) < 0.85, sample(1:3, n, replace = TRUE), NA),
+  flint      = ifelse(runif(n) < 0.75, 1L, NA),
+  bone_tool  = ifelse(runif(n) < 0.60, 1L, NA),
+  # Moderately common
+  bronze_pin = ifelse(runif(n) < 0.40, sample(1:2, n, replace = TRUE), NA),
+  amber_bead = ifelse(runif(n) < 0.30, sample(1:8, n, replace = TRUE), NA),
+  # Rare — found mainly in richly furnished graves → high prestige
+  sword      = ifelse(runif(n) < 0.15, sample(1:2, n, replace = TRUE), NA),
+  gold_ring  = ifelse(runif(n) < 0.08, 1L, NA),
+  adult_count    = sample(1:2, n, replace = TRUE),
+  subadult_count = 0L
+)
+
+head(df[, 1:8])
+```
+
+### Step 2: Calculate prestige values
+
+`calculate_prestige()` does everything in one call:
+
+- Identifies which columns are count data (skips lat, lng, adult_count, etc.)
+- Computes TOT (Total Object Types) per grave — how many different types each grave has
+- Estimates a **prestige weight** for each artefact type: types found only in richly furnished graves (high TOT) get higher prestige
+- Adds a **sqrt-count bonus** for quantity (5 beads > 1 bead, but not 5× more)
+- If `adult_count`/`subadult_count` columns exist, divides by the number of adults to give per-capita wealth
+
+```{r prestige}
+pres <- calculate_prestige(df, method = "bayesian", use_age_sep = TRUE)
+
+# The output is the original data frame with three new columns added:
+#   raw_TOT        — count of types present in each grave
+#   prestige_total — sum of prestige weights
+#   combined_total — prestige_total + sqrt-count bonus (main wealth measure)
+pres[1:6, c("grave_id", "raw_TOT", "prestige_total", "combined_total")]
+```
+
+**Choosing a method:**
+
+- `method = "bayesian"` (default, recommended): uses a Bayesian posterior mean per type, with a local empirical prior fitted to each type's TOT distribution. More stable for rare types.
+- `method = "mean"`: uses the simple mean TOT of graves containing that type.
+
+### Step 3: Inequality summary
+
+```{r inequality}
+ineq <- inequality_summary(pres)
+
+# Main results
+ineq$gini_combined      # Gini for combined wealth (prestige + sqrt-count)
+ineq$abs_gini_combined  # Absolute Gini = G × mean wealth
+ineq$mean_wealth
+ineq$median_wealth
+ineq$n                  # sample size used (adult graves if age-separated)
+
+# Three Gini measures are computed:
+# gini_combined  — recommended main measure
+# gini_prestige  — prestige only (no count bonus)
+# gini_tot       — simple type count (TOT + 1)
+```
+
+### Step 4: Plots
+
+#### Prestige values plot
+
+Shows the distribution of TOT scores for each artefact type, with Bayesian credible intervals (blue dots and bars). Types on the left are common (low prestige); types on the right are exclusive (high prestige).
+
+```{r plot_prestige, fig.height = 5}
+plot_prestige(pres, case = "Example assemblage", dates = "2500-2200 BCE")
+```
+
+#### Lorenz curve
+
+The Lorenz curve visualises inequality — the further it bows below the diagonal, the more unequal the wealth distribution. Three measures are shown:
+
+- **Green (solid)**: combined wealth (prestige + √counts) — main measure
+- **Blue (dashed)**: prestige only
+- **Red (dashed)**: TOT + 1
+
+```{r plot_lorenz}
+plot_lorenz(pres, ineq,
+            case  = "Example assemblage",
+            dates = "2500-2200 BCE")
+```
+
+#### Density curves
+
+```{r plot_density}
+plot_density(pres, graves = "all")
+# Options: graves = "all" | "adults" | "subadults"
+```
+
+#### Decile distribution
+
+Each bar shows one wealth decile's share of total wealth. Numbers = count of graves in that decile.
+
+```{r plot_decile, fig.height = 5}
+plot_decile(pres,
+            case  = "Example assemblage",
+            dates = "2500-2200 BCE")
+```
+
+#### Combined interactive panel (plotly)
+
+```{r panel, eval = FALSE}
+plot_inequality_panel(pres, ineq,
+                      case  = "Example assemblage",
+                      dates = "2500-2200 BCE")
+```
+
+---
+
+## Category bias simulation
+
+Artefact category definitions are researcher choices. The same bronze object might be recorded as "bronze" (one column) or as "bronze_pin", "bronze_ring", "bronze_awl" (three columns). This simulation tests whether your Gini values are robust to those decisions.
+
+**Splitting**: columns are randomly split into sub-types.
+**Lumping**: columns sharing name substrings are randomly merged.
+
+The IQR of simulated Ginis across 100–200 iterations shows the plausible range your results could take under different recording conventions.
+
+```{r bias, fig.height = 6}
+set.seed(42)
+bias <- simulate_category_bias(df,
+                                graves = "adults",  # use adult graves only
+                                n_sims = 100)
+
+# Static 2×2 faceted plot
+plot_bias(bias,
+          case  = "Example assemblage",
+          dates = "2500-2200 BCE")
+```
+
+```{r bias_interactive, eval = FALSE}
+# Full interactive plotly version with annotations
+plot_bias_interactive(bias,
+                      case  = "Example assemblage",
+                      dates = "2500-2200 BCE")
+```
+
+The `store_wealth` option saves per-grave wealth scores for every simulation:
+
+```{r bias_wealth, eval = FALSE}
+bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
+
+# Wealth scores from simulation 1, split direction:
+head(bias_w$wealth_scores$split[[1]])
+```
+
+---
+
+## Physical measure data
+
+For house floor areas, mound volumes, pit depths, etc., the workflow is simpler — no prestige calculation needed.
+
+```{r physical}
+set.seed(99)
+areas <- round(rlnorm(50, meanlog = 4, sdlog = 0.8), 1)  # simulated house areas
+
+ineq_phys <- physical_measure_summary(areas)
+ineq_phys$gini
+ineq_phys$abs_gini
+ineq_phys$mean
+```
+
+```{r physical_lorenz}
+plot_physical_lorenz(areas,
+                     data_type = "house size (m2)",
+                     case      = "LBK settlement",
+                     dates     = "5500-4900 BCE")
+```
+
+```{r physical_density}
+plot_physical_density(areas,
+                      data_type = "house size (m2)")
+```
+
+```{r physical_decile, fig.height = 5}
+plot_physical_decile(areas,
+                     data_type = "house size (m2)",
+                     case      = "LBK settlement",
+                     unit      = "m2")
+```
+
+```{r physical_panel, eval = FALSE}
+# Combined three-panel interactive plot
+plot_physical_panel(areas,
+                    data_type = "house size (m2)",
+                    case      = "LBK settlement",
+                    dates     = "5500-4900 BCE",
+                    unit      = "m2")
+```
+
+---
+
+## Multi-case batch pipeline
+
+When your dataset has multiple phases, periods, or sites, use `qw_pipeline()` to run everything at once.
+
+```{r pipeline}
+# Add a grouping column to the example data
+df_multi <- df
+df_multi$phase <- rep(c("Early", "Middle", "Late"), length.out = nrow(df_multi))
+
+result <- qw_pipeline(df_multi,
+                       group_col = "phase",
+                       id_col    = "grave_id",
+                       method    = "bayesian")
+
+# Summary table: one row per case
+cases_summary(result)
+```
+
+### Comparison plots
+
+```{r gini_comparison}
+plot_gini_comparison(result,
+                     measure  = "combined",   # or "prestige" / "tot"
+                     order_by = "gini")       # or "case" for original order
+```
+
+```{r lorenz_comparison}
+plot_lorenz_comparison(result)
+```
+
+```{r interactive_comparison, eval = FALSE}
+plot_gini_comparison_interactive(result)
+plot_lorenz_comparison_interactive(result)
+```
+
+### Physical measure pipeline
+
+```{r physical_pipeline}
+houses <- data.frame(
+  phase   = rep(c("Phase 1", "Phase 2", "Phase 3"), each = 20),
+  house   = paste0("H", 1:60),
+  area_m2 = c(rlnorm(20, 4.0, 0.5),
+               rlnorm(20, 4.5, 0.6),
+               rlnorm(20, 4.2, 0.9))
+)
+
+result_phys <- qw_pipeline(houses,
+                             group_col   = "phase",
+                             id_col      = "house",
+                             data_type   = "physical",
+                             measure_col = "area_m2")
+
+cases_summary(result_phys)
+plot_gini_comparison(result_phys)
+```
+
+---
+
+## Age-separated analysis
+
+When `adult_count` and `subadult_count` columns are present, `calculate_prestige()` automatically:
+
+- Estimates prestige weights from **adult graves only** (where the social investment in grave goods is thought to reflect the deceased's own status)
+- Identifies **subadult-exclusive types** (artefact types found only in child burials) and marks them with `*` in the prestige plot
+- Divides combined wealth by the number of adults per grave (per-capita wealth)
+- Computes a **separate Gini for subadult-only graves** in `inequality_summary()`
+
+```{r age_sep, eval = FALSE}
+# If your data has adult_count / subadult_count columns:
+pres <- calculate_prestige(df, use_age_sep = TRUE)  # TRUE is the default
+
+ineq <- inequality_summary(pres)
+ineq$n_adult              # number of adult graves used
+ineq$n_subadult           # number of subadult-only graves
+ineq$gini_subadult        # Gini for subadult-only graves
+ineq$abs_gini_subadult    # Absolute Gini for subadult graves
+
+# The prestige plot marks subadult-exclusive types with *
+plot_prestige(pres, case = "My assemblage")
+```
+
+---
+
+## Helper functions
+
+```{r helpers, eval = FALSE}
+# Format BCE/CE date ranges
+format_dates(-2500, -2200)  # "2500 - 2200 BCE"
+format_dates(-500, 200)     # "500 BCE - 200 CE"
+format_dates(800, 1200)     # "800 - 1200 CE"
+
+# Identify which columns are count data
+identify_count_columns(df)
+
+# Read CSV or Excel automatically
+df <- read_qw_data("my_data.csv")
+df <- read_qw_data("my_data.xlsx")
+```
+
+---
+
+## Reproducing results exactly
+
+Because the bias simulation and Gini bootstrap CIs involve random sampling, set a seed for reproducibility:
+
+```{r seed, eval = FALSE}
+set.seed(42)
+bias <- simulate_category_bias(df, n_sims = 200)
+
+set.seed(42)
+ineq <- inequality_summary(pres, n_boot = 500)
+```
+
+The **prestige values** (`calculate_prestige()`) and **observed Gini** (`orig_gini_*` in bias results) are fully deterministic — no seed needed.
+
+---
+
+## Citation
+
+> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. <https://doi.org/10.31235/osf.io/wzcqy_v2>
