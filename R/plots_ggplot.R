@@ -388,6 +388,13 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL) {
 
 
 #' Plot category bias simulation results (2x2 faceted jitter plot)
+#'
+#' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
+#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' function just labels which subset was used in the title. To compare
+#' adults vs subadults, run [simulate_category_bias()] twice with different
+#' `graves` values and plot each result separately.
+#'
 #' @param bias_result Output from [simulate_category_bias()].
 #' @param case Character. Case/period label for the title.
 #' @param dates Character. Date range string.
@@ -462,10 +469,16 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
     split_min, "-", split_max, " cols<br>", split_eligible_text, "</span>"
   )
 
+  graves_label <- switch(bias_result$graves_used %||% "adults",
+    all       = "",
+    adults    = " (adults only)",
+    subadults = " (subadults only)"
+  )
+
   ttl <- if (!is.null(.title_override)) {
     .title_override
   } else {
-    t <- "Category Bias Simulation"
+    t <- paste0("Category Bias Simulation", graves_label)
     if (!is.null(case)  && nchar(case)  > 0) t <- paste(t, "—", case)
     if (!is.null(dates) && nchar(dates) > 0) t <- paste(t, "—", dates)
     t
@@ -530,6 +543,251 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
     ) +
     ggplot2::labs(title = ttl, subtitle = subtitle_md, caption = caption_md,
                   x = "Simulated Gini", y = NULL, colour = "Direction")
+}
+
+
+#' Plot wealth-score density curves across category bias simulations
+#'
+#' [plot_bias()] summarises each simulation as a single Gini value. This
+#' function instead shows the full *shape* of the simulated wealth
+#' distributions — one faint density line per simulation, coloured by
+#' whether categories were split or lumped in that simulation. Where the
+#' lines overlap heavily, the distribution's shape is robust to recording
+#' decisions; where they fan out, it is sensitive to them.
+#'
+#' Requires running [simulate_category_bias()] with `store_wealth = TRUE`,
+#' which keeps per-grave wealth scores for every simulation. This is a large
+#' object, so it is best used with modest `n_sims` and dataset sizes.
+#'
+#' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
+#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' function just labels which subset was used in the title. To compare
+#' adults vs subadults, run [simulate_category_bias()] twice with different
+#' `graves` values and plot each result separately.
+#'
+#' @param bias_result Output from [simulate_category_bias()] run with
+#'   `store_wealth = TRUE`.
+#' @param measure Which wealth measure(s) to show: `"all"` (default, facets
+#'   across all four measures used in [plot_bias()]), `"combined"`
+#'   (prestige + sqrt-count bonus — the main wealth measure), `"prestige"`
+#'   (prestige only), or `"tot"` (TOT + 1).
+#' @param case Character. Case label added to the title.
+#' @param dates Character. Date range string added to the title.
+#' @param alpha Numeric. Transparency of each simulation's density line
+#'   (default 0.12). Lower values make the overall envelope easier to read
+#'   when `n_sims` is large.
+#' @return A [ggplot2::ggplot] object.
+#' @export
+#' @examples
+#' \dontrun{
+#' df    <- read_qw_data(example_data_path())
+#' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
+#' plot_bias_wealth_density(bias_w)
+#' plot_bias_wealth_density(bias_w, measure = "combined")
+#' }
+plot_bias_wealth_density <- function(bias_result,
+                                      measure = c("all", "combined", "prestige", "tot"),
+                                      case = NULL, dates = NULL, alpha = 0.12) {
+  measure <- match.arg(measure)
+  if (is.null(bias_result$wealth_scores)) {
+    stop("bias_result has no stored wealth scores. Re-run simulate_category_bias(",
+         "..., store_wealth = TRUE) to enable this plot.")
+  }
+
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+√count",
+                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+√count")
+
+  build_long <- function(lst, direction) {
+    do.call(rbind, lapply(seq_along(lst), function(i) {
+      d <- lst[[i]]
+      data.frame(
+        sim           = i,
+        direction     = direction,
+        TOT           = d$TOT,
+        TOT_sqrt      = d$TOT_sqrt,
+        prestige      = d$prestige,
+        prestige_sqrt = d$prestige_sqrt
+      )
+    }))
+  }
+
+  wide <- rbind(
+    build_long(bias_result$wealth_scores$split, "Split"),
+    build_long(bias_result$wealth_scores$lump,  "Lump")
+  )
+  wide$sim_id <- paste(wide$direction, wide$sim)
+
+  if (measure == "all") {
+    long <- tidyr::pivot_longer(wide, cols = c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt"),
+                                 names_to = "Method", values_to = "value")
+    long$Method <- factor(label_map[long$Method],
+                           levels = c("TOT+1", "TOT+1+√count",
+                                      "Mean Prestige+1", "Mean Prestige+1+√count"))
+    facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2, scales = "free")
+    x_lab <- "Wealth value"
+  } else {
+    col <- switch(measure, combined = "prestige_sqrt", prestige = "prestige", tot = "TOT")
+    long <- data.frame(sim_id = wide$sim_id, direction = wide$direction, value = wide[[col]])
+    facet_layer <- NULL
+    x_lab <- switch(measure,
+      combined = "Combined wealth (prestige + √count)",
+      prestige = "Prestige only",
+      tot      = "TOT + 1"
+    )
+  }
+
+  long$direction <- factor(long$direction, levels = c("Lump", "Split"))
+
+  graves_label <- switch(bias_result$graves_used %||% "adults",
+    all       = "",
+    adults    = " (adults only)",
+    subadults = " (subadults only)"
+  )
+
+  ttl <- paste0("Wealth distribution across category bias simulations", graves_label)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+
+  p <- ggplot2::ggplot(long, ggplot2::aes(x = value, group = sim_id, colour = direction)) +
+    ggplot2::stat_density(geom = "line", alpha = alpha, linewidth = 0.4) +
+    ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
+    ggplot2::guides(colour = ggplot2::guide_legend(
+      override.aes = list(linewidth = 3, alpha = 1)
+    )) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.position = "bottom",
+      strip.text = ggplot2::element_text(size = 10, face = "bold"),
+      plot.title = ggplot2::element_text(size = 13, face = "bold", hjust = 0.5)
+    ) +
+    ggplot2::labs(title = ttl, x = x_lab, y = "Density", colour = "Direction")
+
+  if (!is.null(facet_layer)) p <- p + facet_layer
+  p
+}
+
+
+#' Multiline Lorenz curve plot across category bias simulations
+#'
+#' Builds a Lorenz curve for each simulation stored in a
+#' [simulate_category_bias()] run made with `store_wealth = TRUE`, and
+#' overlays them as faint lines coloured by whether categories were split or
+#' lumped in that simulation. This shows how category-recording decisions
+#' affect the whole shape of inequality (not just the summary Gini plotted
+#' by [plot_bias()]) — where lines bow apart, the inequality picture itself
+#' is sensitive to recording choices, not just its single Gini summary.
+#'
+#' Requires running [simulate_category_bias()] with `store_wealth = TRUE`,
+#' which keeps per-grave wealth scores for every simulation. This is a large
+#' object, so it is best used with modest `n_sims` and dataset sizes.
+#'
+#' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
+#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' function just labels which subset was used in the title. To compare
+#' adults vs subadults, run [simulate_category_bias()] twice with different
+#' `graves` values and plot each result separately.
+#'
+#' @param bias_result Output from [simulate_category_bias()] run with
+#'   `store_wealth = TRUE`.
+#' @param measure Which wealth measure(s) to show: `"all"` (default, facets
+#'   across all four measures used in [plot_bias()]), `"combined"`
+#'   (prestige + sqrt-count bonus — the main wealth measure), `"prestige"`
+#'   (prestige only), or `"tot"` (TOT + 1).
+#' @param case Character. Case label added to the title.
+#' @param dates Character. Date range string added to the title.
+#' @param alpha Numeric. Transparency of each simulation's Lorenz line
+#'   (default 0.12). Lower values make the overall envelope easier to read
+#'   when `n_sims` is large.
+#' @return A [ggplot2::ggplot] object.
+#' @export
+#' @examples
+#' \dontrun{
+#' df     <- read_qw_data(example_data_path())
+#' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
+#' plot_bias_wealth_lorenz(bias_w)
+#' plot_bias_wealth_lorenz(bias_w, measure = "combined")
+#' }
+plot_bias_wealth_lorenz <- function(bias_result,
+                                     measure = c("all", "combined", "prestige", "tot"),
+                                     case = NULL, dates = NULL, alpha = 0.12) {
+  measure <- match.arg(measure)
+  if (is.null(bias_result$wealth_scores)) {
+    stop("bias_result has no stored wealth scores. Re-run simulate_category_bias(",
+         "..., store_wealth = TRUE) to enable this plot.")
+  }
+
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+√count",
+                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+√count")
+
+  .lorenz_coords <- function(x) {
+    x  <- sort(x[!is.na(x)])
+    n  <- length(x)
+    cs <- cumsum(x) / sum(x)
+    data.frame(cum_pop = seq(0, 1, length.out = n + 1),
+               cum_wealth = c(0, cs))
+  }
+
+  build_lorenz <- function(lst, direction, cols) {
+    do.call(rbind, lapply(seq_along(lst), function(i) {
+      d <- lst[[i]]
+      do.call(rbind, lapply(cols, function(col) {
+        lc           <- .lorenz_coords(d[[col]])
+        lc$Method    <- col
+        lc$sim_id    <- paste(direction, i)
+        lc$direction <- direction
+        lc
+      }))
+    }))
+  }
+
+  cols <- if (measure == "all") c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt")
+          else switch(measure, combined = "prestige_sqrt", prestige = "prestige", tot = "TOT")
+
+  long <- rbind(
+    build_lorenz(bias_result$wealth_scores$split, "Split", cols),
+    build_lorenz(bias_result$wealth_scores$lump,  "Lump",  cols)
+  )
+
+  if (measure == "all") {
+    long$Method <- factor(label_map[long$Method],
+                           levels = c("TOT+1", "TOT+1+√count",
+                                      "Mean Prestige+1", "Mean Prestige+1+√count"))
+    facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2)
+  } else {
+    facet_layer <- NULL
+  }
+
+  long$direction <- factor(long$direction, levels = c("Lump", "Split"))
+
+  graves_label <- switch(bias_result$graves_used %||% "adults",
+    all       = "",
+    adults    = " (adults only)",
+    subadults = " (subadults only)"
+  )
+
+  ttl <- paste0("Lorenz curves across category bias simulations", graves_label)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+
+  p <- ggplot2::ggplot(long, ggplot2::aes(x = cum_pop, y = cum_wealth,
+                                           group = sim_id, colour = direction)) +
+    ggplot2::geom_line(alpha = alpha, linewidth = 0.4) +
+    ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey50", linewidth = 0.5) +
+    ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
+    ggplot2::guides(colour = ggplot2::guide_legend(
+      override.aes = list(linewidth = 3, alpha = 1)
+    )) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.position = "bottom",
+      strip.text = ggplot2::element_text(size = 10, face = "bold"),
+      plot.title = ggplot2::element_text(size = 13, face = "bold", hjust = 0.5)
+    ) +
+    ggplot2::labs(title = ttl, x = "Cumulative population share",
+                  y = "Cumulative wealth share", colour = "Direction")
+
+  if (!is.null(facet_layer)) p <- p + facet_layer
+  p
 }
 
 

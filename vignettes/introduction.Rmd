@@ -178,14 +178,6 @@ plot_decile(pres,
             dates = "2500-2200 BCE")
 ```
 
-#### Combined interactive panel (plotly)
-
-```{r panel, eval = FALSE}
-plot_inequality_panel(pres, ineq,
-                      case  = "Example assemblage",
-                      dates = "2500-2200 BCE")
-```
-
 ---
 
 ## Category bias simulation
@@ -196,6 +188,15 @@ Artefact category definitions are researcher choices. The same bronze object mig
 **Lumping**: columns sharing name substrings are randomly merged.
 
 The IQR of simulated Ginis across 100–200 iterations shows the plausible range your results could take under different recording conventions.
+
+The `graves` argument (`"adults"`, `"all"`, or `"subadults"`) chooses which
+grave subset is simulated — it must be set here, when running the
+simulation, not in the plotting functions, since every simulated value
+already reflects that choice. All three bias-related plots below
+(`plot_bias()`, `plot_bias_wealth_density()`, `plot_bias_wealth_lorenz()`)
+show which subset was used in their title. To compare adults vs subadults,
+run `simulate_category_bias()` twice with different `graves` values and
+look at the two plots side by side.
 
 ```{r bias, fig.height = 6}
 bias <- simulate_category_bias(df,
@@ -208,20 +209,41 @@ plot_bias(bias,
           dates = "2500-2200 BCE")
 ```
 
-```{r bias_interactive, eval = FALSE}
-# Full interactive plotly version with annotations
-plot_bias_interactive(bias,
-                      case  = "Example assemblage",
-                      dates = "2500-2200 BCE")
-```
+The `store_wealth` option saves per-grave wealth scores for every simulation. This lets you go beyond the Gini summary and look at how splitting/lumping decisions reshape the *whole* wealth distribution, not just its inequality value:
 
-The `store_wealth` option saves per-grave wealth scores for every simulation:
-
-```{r bias_wealth, eval = FALSE}
+```{r bias_wealth, fig.height = 6}
 bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 
 # Wealth scores from simulation 1, split direction:
 head(bias_w$wealth_scores$split[[1]])
+
+# Density of each simulated wealth distribution, one faint line per
+# simulation, coloured by split (blue) vs lump (orange) — facets show all
+# four wealth measures, matching plot_bias()
+plot_bias_wealth_density(bias_w)
+```
+
+Heavy overlap between lines means the distribution's shape is robust to category-recording choices; lines fanning out in different directions mean the shape itself (not just the Gini) is sensitive to how categories are defined. You can also focus on a single measure:
+
+```{r bias_wealth_single, fig.height = 4.5}
+plot_bias_wealth_density(bias_w, measure = "combined",
+                          case = "Example assemblage")
+```
+
+The same simulations can also be viewed as Lorenz curves — one faint curve
+per simulation, again coloured by split (blue) vs lump (orange). Curves
+that hug each other closely mean inequality looks the same regardless of
+recording choices; curves that spread apart mean the inequality picture
+itself depends on how categories were defined, beyond what the Gini number
+alone would suggest:
+
+```{r bias_lorenz, fig.height = 6}
+plot_bias_wealth_lorenz(bias_w)
+```
+
+```{r bias_lorenz_single, fig.height = 4.5}
+plot_bias_wealth_lorenz(bias_w, measure = "combined",
+                         case = "Example assemblage")
 ```
 
 ---
@@ -259,14 +281,6 @@ plot_physical_decile(areas,
                      unit      = "m2")
 ```
 
-```{r physical_panel, eval = FALSE}
-# Combined three-panel interactive plot
-plot_physical_panel(areas,
-                    data_type = "house size (m2)",
-                    case      = "LBK settlement",
-                    dates     = "5500-4900 BCE",
-                    unit      = "m2")
-```
 
 ---
 
@@ -300,10 +314,6 @@ plot_gini_comparison(result,
 plot_lorenz_comparison(result)
 ```
 
-```{r interactive_comparison, eval = FALSE}
-plot_gini_comparison_interactive(result)
-plot_lorenz_comparison_interactive(result)
-```
 
 ### Physical measure pipeline
 

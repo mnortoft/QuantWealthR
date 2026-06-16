@@ -33,10 +33,6 @@ plot_lorenz(pres)             # Lorenz curve
 plot_density(pres)            # wealth density curves
 plot_decile(pres)             # decile distribution
 
-# Interactive (plotly) equivalents
-plot_prestige_interactive(pres)
-plot_inequality_panel(pres)   # combined three-panel subplot
-
 # 5. Category bias simulation
 bias <- simulate_category_bias(df, n_sims = 200)
 plot_bias(bias)
@@ -72,7 +68,7 @@ result$summary    # data frame with one row per phase
    \code{\link[=plot_density]{plot_density()}} \tab Density curves (ggplot2) \cr
    \code{\link[=plot_decile]{plot_decile()}} \tab Decile chart (ggplot2) \cr
    \code{\link[=plot_bias]{plot_bias()}} \tab Bias simulation (ggplot2) \cr
-   \code{\link[=plot_inequality_panel]{plot_inequality_panel()}} \tab Combined panel (plotly) \cr
+   \code{\link[=plot_bias_wealth_density]{plot_bias_wealth_density()}} \tab Per-grave wealth density across simulations (ggplot2) \cr
 }
 
 }

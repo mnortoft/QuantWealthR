@@ -27,10 +27,6 @@
 #' plot_density(pres)            # wealth density curves
 #' plot_decile(pres)             # decile distribution
 #'
-#' # Interactive (plotly) equivalents
-#' plot_prestige_interactive(pres)
-#' plot_inequality_panel(pres)   # combined three-panel subplot
-#'
 #' # 5. Category bias simulation
 #' bias <- simulate_category_bias(df, n_sims = 200)
 #' plot_bias(bias)
@@ -67,7 +63,7 @@
 #' | [plot_density()] | Density curves (ggplot2) |
 #' | [plot_decile()] | Decile chart (ggplot2) |
 #' | [plot_bias()] | Bias simulation (ggplot2) |
-#' | [plot_inequality_panel()] | Combined panel (plotly) |
+#' | [plot_bias_wealth_density()] | Per-grave wealth density across simulations (ggplot2) |
 #'
 #' @seealso
 #' * QuantWealth web app: <https://quantwealth.eu>

@@ -9,9 +9,8 @@ Description: Tools for calculating prestige values, wealth scores, and inequalit
     objects) and physical measures (e.g. house floor area). Implements Bayesian and
     mean-based prestige estimation, Gini coefficients with confidence intervals,
     Lorenz curves, decile distributions, category bias simulations, and a batch
-    pipeline for multi-period datasets. Produces both static ggplot2 and interactive
-    plotly visualisations.
-License: MIT + file LICENSE
+    pipeline for multi-period datasets. Produces static ggplot2 visualisations.
+License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
@@ -19,7 +18,6 @@ Imports:
     dplyr (>= 1.0.0),
     ggplot2 (>= 3.4.0),
     gglorenz,
-    plotly (>= 4.10.0),
     DescTools (>= 0.99.0),
     scales,
     tidyr,

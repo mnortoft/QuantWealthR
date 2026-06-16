@@ -2,7 +2,7 @@
 
 **Quantitative wealth and inequality analysis for archaeological data.**
 
-QuantWealthR brings the full analytical toolkit of the [QuantWealth online app](https://quantwealth.eu) into R, so you can run analyses programmatically, batch-process multi-period datasets, integrate results into your own scripts, and produce publication-quality ggplot2 figures or interactive plotly visualisations.
+QuantWealthR brings the full analytical toolkit of the [QuantWealth online app](https://quantwealth.eu) into R, so you can run analyses programmatically, batch-process multi-period datasets, integrate results into your own scripts, and produce publication-quality ggplot2 figures.
 
 ---
 
@@ -12,14 +12,16 @@ QuantWealthR brings the full analytical toolkit of the [QuantWealth online app](
 # Install devtools if needed
 install.packages("devtools")
 
-# Install QuantWealthR from the local folder
-devtools::install("path/to/QuantWealth R package")
+# Install QuantWealthR from GitHub
+devtools::install_github("mnortoft/QuantWealthR", build_vignettes = TRUE)
 
 library(QuantWealthR)
 ```
 
 Required packages are installed automatically as dependencies:
-`dplyr`, `ggplot2`, `gglorenz`, `plotly`, `DescTools`, `ggtext`, `scales`, `tidyr`.
+`dplyr`, `ggplot2`, `gglorenz`, `DescTools`, `ggtext`, `scales`, `tidyr`.
+
+A small example dataset is bundled with the package — see `example_data_path()` below to try the functions immediately without your own data.
 
 ---
 
@@ -30,7 +32,7 @@ The package handles two types of archaeological data:
 | Data type | Examples | Key functions |
 |-----------|----------|---------------|
 | **Count data** | Grave goods, hoard types, house objects | `calculate_prestige()`, `inequality_summary()`, `simulate_category_bias()` |
-| **Physical measures** | House floor area (m²), mound volume (m³), grave pit depth (cm) | `physical_measure_summary()`, `plot_physical_panel()` |
+| **Physical measures** | House floor area (m²), mound volume (m³), grave pit depth (cm) | `physical_measure_summary()`, `plot_physical_lorenz()` |
 
 Both types can be processed in bulk across multiple periods or sites using `qw_pipeline()`.
 
@@ -46,6 +48,9 @@ library(QuantWealthR)
 # Load your data — first column = unit ID, rest = counts
 df <- read_qw_data("my_graves.csv")   # or read.csv() / readxl::read_excel()
 
+# Or try the bundled example dataset
+df <- read_qw_data(example_data_path())
+
 # Step 1: Calculate prestige values
 pres <- calculate_prestige(df, method = "bayesian")
 
@@ -60,11 +65,6 @@ plot_prestige(pres, case = "Bell Beaker", dates = format_dates(-2500, -2200))
 plot_lorenz(pres, ineq, case = "Bell Beaker", dates = format_dates(-2500, -2200))
 plot_density(pres)
 plot_decile(pres, case = "Bell Beaker", dates = format_dates(-2500, -2200))
-
-# Interactive (plotly) equivalents
-plot_inequality_panel(pres, ineq,
-                      case  = "Bell Beaker",
-                      dates = format_dates(-2500, -2200))
 ```
 
 ### Physical measures (e.g. house floor area)
@@ -80,10 +80,6 @@ plot_physical_lorenz(areas, data_type = "house size (m2)",
                      case = "LBK", dates = "5500-4900 BCE")
 plot_physical_density(areas, data_type = "house size (m2)")
 plot_physical_decile(areas, unit = "m2")
-
-# Combined three-panel plot (matches app layout)
-plot_physical_panel(areas, data_type = "house size (m2)",
-                    case = "LBK", dates = "5500-4900 BCE", unit = "m2")
 ```
 
 ### Category bias simulation
@@ -92,11 +88,14 @@ plot_physical_panel(areas, data_type = "house size (m2)",
 set.seed(42)
 bias <- simulate_category_bias(df, n_sims = 200, graves = "adults")
 
-# Static 2×2 facet plot
+# Static 2×2 facet plot of simulated Gini values
 plot_bias(bias, case = "Bell Beaker", dates = format_dates(-2500, -2200))
 
-# Interactive plotly version with full annotations
-plot_bias_interactive(bias, case = "Bell Beaker", dates = format_dates(-2500, -2200))
+# Store per-grave wealth scores for every simulation to see how splitting/
+# lumping reshapes the whole wealth distribution, not just the Gini
+bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
+plot_bias_wealth_density(bias_w, case = "Bell Beaker")
+plot_bias_wealth_lorenz(bias_w, case = "Bell Beaker")
 ```
 
 ### Multi-case batch pipeline
@@ -114,10 +113,6 @@ cases_summary(result)
 # Compare Gini values across cases
 plot_gini_comparison(result)
 plot_lorenz_comparison(result)
-
-# Interactive versions
-plot_gini_comparison_interactive(result)
-plot_lorenz_comparison_interactive(result)
 ```
 
 ---
@@ -189,15 +184,8 @@ First column = unit ID, second column = the measure value.
 | `plot_physical_lorenz(sizes, data_type, case, dates)` | Lorenz curve for physical measures |
 | `plot_physical_density(sizes, data_type, case, dates)` | Density curve for physical measures |
 | `plot_physical_decile(sizes, data_type, case, dates, unit)` | Decile chart for physical measures |
-
-### plotly plots (interactive)
-All ggplot2 functions have `_interactive()` counterparts (e.g. `plot_lorenz_interactive()`).
-
-| Additional plotly function | Description |
-|---------------------------|-------------|
-| `plot_inequality_panel(prestige_df, ineq_summary, case, dates)` | Three-panel subplot: Lorenz + density + decile |
-| `plot_physical_panel(sizes, data_type, case, dates, unit)` | Three-panel subplot for physical measures |
-| `plot_bias_interactive(bias_result, case, dates)` | Full bias plot with plotly annotations |
+| `plot_bias_wealth_density(bias_result, measure, case, dates, alpha)` | Multiline density plot of per-grave wealth scores across all simulations, coloured by split/lump |
+| `plot_bias_wealth_lorenz(bias_result, measure, case, dates, alpha)` | Multiline Lorenz curve plot across all simulations, coloured by split/lump |
 
 ### Multi-case pipeline
 | Function | Description |

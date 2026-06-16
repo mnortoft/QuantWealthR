@@ -17,5 +17,9 @@ plot_bias(bias_result, case = NULL, dates = NULL, .title_override = NULL)
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
-Plot category bias simulation results (2x2 faceted jitter plot)
+The grave subset (\code{"adults"}, \code{"all"}, or \code{"subadults"}) is fixed when you
+call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here — this
+function just labels which subset was used in the title. To compare
+adults vs subadults, run \code{\link[=simulate_category_bias]{simulate_category_bias()}} twice with different
+\code{graves} values and plot each result separately.
 }

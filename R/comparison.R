@@ -220,32 +220,3 @@ cases_summary <- function(pipeline_result, digits = 3) {
   df[num_cols]  <- lapply(df[num_cols], round, digits = digits)
   df
 }
-
-
-#' Interactive Gini comparison plot
-#'
-#' @inheritParams plot_gini_comparison
-#' @return A plotly widget.
-#' @export
-plot_gini_comparison_interactive <- function(pipeline_result,
-                                              measure  = c("combined", "prestige", "tot"),
-                                              order_by = c("gini", "case"),
-                                              title    = NULL,
-                                              abs_gini = FALSE) {
-  p <- plot_gini_comparison(pipeline_result, measure = match.arg(measure),
-                             order_by = match.arg(order_by),
-                             title = title, abs_gini = abs_gini)
-  plotly::ggplotly(p)
-}
-
-
-#' Interactive Lorenz curve comparison
-#'
-#' @inheritParams plot_lorenz_comparison
-#' @return A plotly widget.
-#' @export
-plot_lorenz_comparison_interactive <- function(pipeline_result,
-                                                title = NULL, cases = NULL) {
-  p <- plot_lorenz_comparison(pipeline_result, title = title, cases = cases)
-  plotly::ggplotly(p)
-}
