@@ -11,11 +11,11 @@
 #' etc.).
 #'
 #' **What is computed per group:**
-#' 1. Prestige values (`calculate_prestige()`) — count data only.
-#' 2. Inequality summary (`inequality_summary()`) — count data only.
-#' 3. Category bias simulation (`simulate_category_bias()`) — count data only,
+#' 1. Prestige values (`calculate_prestige()`) -- count data only.
+#' 2. Inequality summary (`inequality_summary()`) -- count data only.
+#' 3. Category bias simulation (`simulate_category_bias()`) -- count data only,
 #'    only when `run_bias_sim = TRUE`.
-#' 4. Physical measure Gini (`physical_measure_gini()`) — physical data only.
+#' 4. Physical measure Gini (`physical_measure_gini()`) -- physical data only.
 #'
 #' @param df A data frame.  Must contain:
 #'   * A grouping column named by the `group_col` argument.
@@ -50,7 +50,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' # Count data example — multiple Bronze Age phases
+#' # Count data example -- multiple Bronze Age phases
 #' df <- data.frame(
 #'   phase  = rep(c("Early", "Middle", "Late"), each = 15),
 #'   grave  = paste0("G", 1:45),
@@ -61,7 +61,7 @@
 #' result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
 #' result$summary
 #'
-#' # Physical measure example — house areas across phases
+#' # Physical measure example -- house areas across phases
 #' houses <- data.frame(
 #'   phase   = rep(c("Phase 1", "Phase 2"), each = 20),
 #'   house   = paste0("H", 1:40),
@@ -151,7 +151,7 @@ qw_pipeline <- function(df,
         # Build summary row
         g  <- ineq$gini_combined
         ci <- if (!is.na(g["lower"])) {
-          paste0("[", round(g["lower"], 3), "–", round(g["upper"], 3), "]")
+          paste0("[", round(g["lower"], 3), "\u2013", round(g["upper"], 3), "]")
         } else NA_character_
 
         row <- data.frame(
@@ -185,7 +185,7 @@ qw_pipeline <- function(df,
 
         g <- physical_measure_gini(sizes, conf_level = conf_level)
         ci <- if (!is.na(g["lower"])) {
-          paste0("[", round(g["lower"], 3), "–", round(g["upper"], 3), "]")
+          paste0("[", round(g["lower"], 3), "\u2013", round(g["upper"], 3), "]")
         } else NA_character_
 
         grp_result$sizes <- sizes

@@ -15,7 +15,7 @@ plot_gini_comparison(
 \arguments{
 \item{pipeline_result}{Output from \code{\link[=qw_pipeline]{qw_pipeline()}}.}
 
-\item{measure}{For count data: which Gini to plot — \code{"combined"} (default,
+\item{measure}{For count data: which Gini to plot -- \code{"combined"} (default,
 prestige + sqrt-count bonus), \code{"prestige"}, or \code{"tot"}.  Ignored for
 physical measure pipelines.}
 
@@ -23,7 +23,7 @@ physical measure pipelines.}
 
 \item{title}{Optional plot title.}
 
-\item{abs_gini}{Logical. If TRUE, also shows the absolute Gini (G × mean
+\item{abs_gini}{Logical. If TRUE, also shows the absolute Gini (G x mean
 wealth) as a secondary point in a different colour. Default FALSE.}
 }
 \value{

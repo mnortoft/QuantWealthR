@@ -11,14 +11,14 @@ inequality_summary(prestige_df, conf_level = 0.8, n_boot = 200)
 
 \item{conf_level}{Numeric CI level (default 0.80). Set NA to skip CI.}
 
-\item{n_boot}{Bootstrap replicates (default 500, used when n ≤ 500).}
+\item{n_boot}{Bootstrap replicates (default 500, used when n <= 500).}
 }
 \value{
 A list with elements:
 \itemize{
 \item \code{gini_combined}, \code{gini_prestige}, \code{gini_tot}: named numeric vectors
 from \code{\link[=calculate_gini]{calculate_gini()}}.
-\item \code{abs_gini_combined}: absolute Gini = Gini × mean wealth.
+\item \code{abs_gini_combined}: absolute Gini = Gini x mean wealth.
 \item \code{mean_wealth}, \code{median_wealth}, \code{min_wealth}, \code{max_wealth}: summary
 statistics of \code{combined_total}.
 \item \code{n}: number of observations used.
@@ -34,7 +34,7 @@ three wealth measures and returns a tidy summary list.
 \details{
 The three measures are:
 \itemize{
-\item \strong{combined} (\code{combined_total}): prestige + sqrt-count bonus — the
+\item \strong{combined} (\code{combined_total}): prestige + sqrt-count bonus -- the
 recommended main measure.
 \item \strong{prestige} (\code{prestige_total}): prestige weights only (no quantity
 bonus).

@@ -76,16 +76,16 @@ etc.).
 \details{
 \strong{What is computed per group:}
 \enumerate{
-\item Prestige values (\code{calculate_prestige()}) — count data only.
-\item Inequality summary (\code{inequality_summary()}) — count data only.
-\item Category bias simulation (\code{simulate_category_bias()}) — count data only,
+\item Prestige values (\code{calculate_prestige()}) -- count data only.
+\item Inequality summary (\code{inequality_summary()}) -- count data only.
+\item Category bias simulation (\code{simulate_category_bias()}) -- count data only,
 only when \code{run_bias_sim = TRUE}.
-\item Physical measure Gini (\code{physical_measure_gini()}) — physical data only.
+\item Physical measure Gini (\code{physical_measure_gini()}) -- physical data only.
 }
 }
 \examples{
 \dontrun{
-# Count data example — multiple Bronze Age phases
+# Count data example -- multiple Bronze Age phases
 df <- data.frame(
   phase  = rep(c("Early", "Middle", "Late"), each = 15),
   grave  = paste0("G", 1:45),
@@ -96,7 +96,7 @@ df <- data.frame(
 result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
 result$summary
 
-# Physical measure example — house areas across phases
+# Physical measure example -- house areas across phases
 houses <- data.frame(
   phase   = rep(c("Phase 1", "Phase 2"), each = 20),
   house   = paste0("H", 1:40),

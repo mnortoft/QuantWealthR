@@ -12,13 +12,18 @@ plot_bias(bias_result, case = NULL, dates = NULL, .title_override = NULL)
 \item{case}{Character. Case/period label for the title.}
 
 \item{dates}{Character. Date range string.}
+
+\item{.title_override}{Internal use only. If supplied, replaces the
+auto-generated title entirely (bypassing \code{case}/\code{dates}/grave-subset
+labelling). Not currently called anywhere in the package; exposed as a
+hook for callers that need full control over the title.}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
 The grave subset (\code{"adults"}, \code{"all"}, or \code{"subadults"}) is fixed when you
-call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here — this
+call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here -- this
 function just labels which subset was used in the title. To compare
 adults vs subadults, run \code{\link[=simulate_category_bias]{simulate_category_bias()}} twice with different
 \code{graves} values and plot each result separately.

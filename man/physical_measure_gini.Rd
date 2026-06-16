@@ -8,7 +8,7 @@ physical_measure_gini(sizes, conf_level = 0.8, n_boot = 2000)
 }
 \arguments{
 \item{sizes}{Numeric vector of physical measure values (e.g. house areas
-in m²).  All values must be positive.}
+in m^2).  All values must be positive.}
 
 \item{conf_level}{Numeric CI level (default 0.80). Set NA to skip CI.}
 

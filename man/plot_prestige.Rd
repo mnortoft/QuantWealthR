@@ -18,9 +18,16 @@ plot_prestige(
 
 \item{method}{\code{"bayesian"} (default) or \code{"mean"}.}
 
+\item{case}{Character. Case/period label appended to the title (after
+\code{title}/the default, before \code{dates}). Ignored if \code{title} makes the
+title long enough already -- there is no automatic wrapping.}
+
+\item{dates}{Character. Date range string appended to the title after
+\code{case}.}
+
 \item{title}{Optional plot title.  If NULL, a default is used.}
 
-\item{label}{Optional label (e.g. "Bell Beaker, 2500–2200 BCE") added as
+\item{label}{Optional label (e.g. "Bell Beaker, 2500-2200 BCE") added as
 subtitle.}
 }
 \value{
@@ -28,7 +35,7 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
 Produces a boxplot of TOT scores per type with Bayesian credible intervals
-(or mean ± SD for the mean method) overlaid.
+(or mean +/- SD for the mean method) overlaid.
 }
 \examples{
 \dontrun{

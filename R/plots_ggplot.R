@@ -5,12 +5,17 @@
 #' Plot prestige estimates per artefact type (Bayesian or mean)
 #'
 #' Produces a boxplot of TOT scores per type with Bayesian credible intervals
-#' (or mean ± SD for the mean method) overlaid.
+#' (or mean +/- SD for the mean method) overlaid.
 #'
 #' @param prestige_df Output from [calculate_prestige()].
 #' @param method `"bayesian"` (default) or `"mean"`.
+#' @param case Character. Case/period label appended to the title (after
+#'   `title`/the default, before `dates`). Ignored if `title` makes the
+#'   title long enough already -- there is no automatic wrapping.
+#' @param dates Character. Date range string appended to the title after
+#'   `case`.
 #' @param title Optional plot title.  If NULL, a default is used.
-#' @param label Optional label (e.g. "Bell Beaker, 2500–2200 BCE") added as
+#' @param label Optional label (e.g. "Bell Beaker, 2500-2200 BCE") added as
 #'   subtitle.
 #' @return A [ggplot2::ggplot] object.
 #' @export
@@ -23,7 +28,7 @@ plot_prestige <- function(prestige_df, method = "bayesian",
                            case = NULL, dates = NULL,
                            title = NULL, label = NULL) {
 
-  # Use stored attributes from calculate_prestige() when available —
+  # Use stored attributes from calculate_prestige() when available --
   # this mirrors how the app uses reactives so the plot exactly matches.
   tot_range  <- attr(prestige_df, "plot_tot_range")
   sub_types  <- attr(prestige_df, "subadult_types") %||% character(0)
@@ -45,7 +50,7 @@ plot_prestige <- function(prestige_df, method = "bayesian",
   # Drop any rows whose Type is NA (guards against malformed column names)
   tot_range <- tot_range[!is.na(tot_range$Type), ]
 
-  # Add display labels — subadult-exclusive types get a "*" prefix
+  # Add display labels -- subadult-exclusive types get a "*" prefix
   tot_range$Type_display <- ifelse(
     tot_range$Type %in% sub_types,
     paste0("*", tot_range$Type),
@@ -172,8 +177,8 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 #' @param ineq_summary Output from [inequality_summary()].  When supplied, adds
 #'   the coloured Gini annotation (Absolute Gini, G values, mean/median,
 #'   sample size, subadult Gini) to the plot interior, exactly as in the app.
-#' @param case Character. Culture or period name (e.g. `"Baden Budakalász"`).
-#'   Appended to the title after " — ".
+#' @param case Character. Culture or period name (e.g. `"Baden Budakalasz"`).
+#'   Appended to the title after " -- ".
 #' @param dates Character. Date range string (e.g. `"3360 - 2890 BCE"` or the
 #'   output of [format_dates()]).  Appended after case.
 #' @param method Character label shown in the annotation, e.g.
@@ -184,7 +189,7 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 #' \dontrun{
 #' pres <- calculate_prestige(df)
 #' ineq <- inequality_summary(pres)
-#' plot_lorenz(pres, ineq, case = "Baden Budakalász",
+#' plot_lorenz(pres, ineq, case = "Baden Budakalasz",
 #'             dates = format_dates(-3360, -2890))
 #' }
 plot_lorenz <- function(prestige_df, ineq_summary = NULL,
@@ -195,17 +200,17 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
   # Build title exactly as the app does
   ttl <- "Lorenz Curve and Ginis"
   if (!is.null(case) && nchar(case) > 0)
-    ttl <- paste(ttl, "—", case)
+    ttl <- paste(ttl, "\u2014", case)
   if (!is.null(dates) && nchar(dates) > 0)
-    ttl <- paste(ttl, "—", dates)
+    ttl <- paste(ttl, "\u2014", dates)
 
   colours <- c(
-    "combined (prestige + √counts)" = "#2ca25f",
+    "combined (prestige + \u221Acounts)" = "#2ca25f",
     "prestige only"                       = "#2166ac",
     "TOT + 1"                             = "#d6604d"
   )
   ltypes <- c(
-    "combined (prestige + √counts)" = "solid",
+    "combined (prestige + \u221Acounts)" = "solid",
     "prestige only"                       = "dashed",
     "TOT + 1"                             = "dashed"
   )
@@ -225,7 +230,7 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
       colour = NULL, linetype = NULL
     )
 
-  # Gini annotation — mirrors the app's html_label block
+  # Gini annotation -- mirrors the app's html_label block
   if (!is.null(ineq_summary)) {
     g  <- ineq_summary$gini_combined
     gp <- ineq_summary$gini_prestige
@@ -233,7 +238,7 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
 
     ci_str <- function(gvec) {
       if (!is.na(gvec["lower"]))
-        paste0(" ±", round((gvec["upper"] - gvec["lower"]) / 2, 2))
+        paste0(" \u00B1", round((gvec["upper"] - gvec["lower"]) / 2, 2))
       else ""
     }
 
@@ -241,17 +246,17 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
       paste0(ineq_summary$n_adult, " adults")
     else as.character(ineq_summary$n)
 
-    # y positions for stacked annotation lines (data coordinates 0–1)
+    # y positions for stacked annotation lines (data coordinates 0-1)
     y0 <- 0.97; dy <- 0.055
 
     p <- p +
       ggplot2::annotate("text", x = 0.02, y = y0,
-        label = paste0("Absolute Gini (G×mean): ",
+        label = paste0("Absolute Gini (G\u00D7mean): ",
                        round(ineq_summary$abs_gini_combined, 2)),
         hjust = 0, vjust = 1, size = 3.5,
         colour = "#2ca25f", fontface = "bold") +
       ggplot2::annotate("text", x = 0.02, y = y0 - dy,
-        label = paste0("G (prestige+√count): ",
+        label = paste0("G (prestige+\u221Acount): ",
                        round(g["gini"], 2), ci_str(g)),
         hjust = 0, vjust = 1, size = 3.2, colour = "#2ca25f") +
       ggplot2::annotate("text", x = 0.02, y = y0 - 2 * dy,
@@ -271,7 +276,7 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
         label = paste0("Sample Size: ", n_label),
         hjust = 0, vjust = 1, size = 3.2, colour = "black")
 
-    # Subadult line (orange) — only if computed
+    # Subadult line (orange) -- only if computed
     gs <- ineq_summary$gini_subadult
     if (!is.na(gs["gini"] %||% NA)) {
       sub_abs <- round(gs["gini"] * ineq_summary$mean_wealth_subadult, 2)
@@ -324,14 +329,14 @@ plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
   ttl <- paste0(
     "Density curves: ",
     "<span style='color:#2166ac'>**Prestige**</span>, ",
-    "<span style='color:#2ca25f'>+√count</span>, ",
+    "<span style='color:#2ca25f'>+\u221Acount</span>, ",
     "<span style='color:#d6604d'>TOT+1</span>",
     graves_label
   )
   if (!is.null(case) && nchar(case) > 0)
-    ttl <- paste(ttl, "—", case)
+    ttl <- paste(ttl, "\u2014", case)
   if (!is.null(dates) && nchar(dates) > 0)
-    ttl <- paste(ttl, "—", dates)
+    ttl <- paste(ttl, "\u2014", dates)
 
   max_tot      <- max(df$raw_TOT + 1,   na.rm = TRUE)
 
@@ -390,7 +395,7 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL) {
 #' Plot category bias simulation results (2x2 faceted jitter plot)
 #'
 #' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
-#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' call [simulate_category_bias()] via its `graves` argument, not here -- this
 #' function just labels which subset was used in the title. To compare
 #' adults vs subadults, run [simulate_category_bias()] twice with different
 #' `graves` values and plot each result separately.
@@ -398,6 +403,10 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL) {
 #' @param bias_result Output from [simulate_category_bias()].
 #' @param case Character. Case/period label for the title.
 #' @param dates Character. Date range string.
+#' @param .title_override Internal use only. If supplied, replaces the
+#'   auto-generated title entirely (bypassing `case`/`dates`/grave-subset
+#'   labelling). Not currently called anywhere in the package; exposed as a
+#'   hook for callers that need full control over the title.
 #' @return A [ggplot2::ggplot] object.
 #' @export
 plot_bias <- function(bias_result, case = NULL, dates = NULL,
@@ -411,20 +420,20 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
              bias_result$ginis_split_prestige_sqrt, bias_result$ginis_lump_prestige_sqrt),
     Columns = rep(c(bias_result$total_splits, bias_result$total_lumped_cols), 4),
     Direction = factor(rep(c("Split","Lump"), times = 4, each = n_sims), levels = c("Lump","Split")),
-    Method = factor(rep(c("TOT+1","TOT+1+√count","Mean Prestige+1","Mean Prestige+1+√count"),
+    Method = factor(rep(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
                         each = n_sims * 2),
-                    levels = c("TOT+1","TOT+1+√count","Mean Prestige+1","Mean Prestige+1+√count"))
+                    levels = c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"))
   )
 
   orig_lines <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+√count","Mean Prestige+1","Mean Prestige+1+√count"),
+    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
                     levels = levels(hist_data$Method)),
     orig_gini = c(bias_result$orig_gini_TOT, bias_result$orig_gini_TOT_sqrt,
                   bias_result$orig_gini_prestige, bias_result$orig_gini_prestige_sqrt)
   )
 
   iqr_per_method <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+√count","Mean Prestige+1","Mean Prestige+1+√count"),
+    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
                     levels = levels(hist_data$Method)),
     iqr_low = c(
       stats::quantile(c(bias_result$ginis_split_TOT,           bias_result$ginis_lump_TOT),           0.25),
@@ -461,11 +470,11 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 
   subtitle_md <- paste0(
     "<span style='color:gray40'>", iter_info, "</span><br>",
-    "<span style='color:coral'><b>Lump:</b> ", n_orig, " cols → ", lump_min, "-", lump_max,
+    "<span style='color:coral'><b>Lump:</b> ", n_orig, " cols \u2192 ", lump_min, "-", lump_max,
     " cols (", bias_result$n_lump_groups, " groups)<br>Matched: ", matched_text, "</span>"
   )
   caption_md <- paste0(
-    "<span style='color:steelblue'><b>Split:</b> ", n_orig, " cols → ",
+    "<span style='color:steelblue'><b>Split:</b> ", n_orig, " cols \u2192 ",
     split_min, "-", split_max, " cols<br>", split_eligible_text, "</span>"
   )
 
@@ -479,8 +488,8 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
     .title_override
   } else {
     t <- paste0("Category Bias Simulation", graves_label)
-    if (!is.null(case)  && nchar(case)  > 0) t <- paste(t, "—", case)
-    if (!is.null(dates) && nchar(dates) > 0) t <- paste(t, "—", dates)
+    if (!is.null(case)  && nchar(case)  > 0) t <- paste(t, "\u2014", case)
+    if (!is.null(dates) && nchar(dates) > 0) t <- paste(t, "\u2014", dates)
     t
   }
 
@@ -502,7 +511,7 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
   )
 
   facet_labels <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+√count","Mean Prestige+1","Mean Prestige+1+√count"),
+    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
                     levels = levels(hist_data$Method)),
     label = paste0(
       "IQR: [", round(iqr_per_method$iqr_low, 3), "-", round(iqr_per_method$iqr_high, 3), "]\n",
@@ -550,7 +559,7 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 #'
 #' [plot_bias()] summarises each simulation as a single Gini value. This
 #' function instead shows the full *shape* of the simulated wealth
-#' distributions — one faint density line per simulation, coloured by
+#' distributions -- one faint density line per simulation, coloured by
 #' whether categories were split or lumped in that simulation. Where the
 #' lines overlap heavily, the distribution's shape is robust to recording
 #' decisions; where they fan out, it is sensitive to them.
@@ -560,16 +569,21 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 #' object, so it is best used with modest `n_sims` and dataset sizes.
 #'
 #' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
-#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' call [simulate_category_bias()] via its `graves` argument, not here -- this
 #' function just labels which subset was used in the title. To compare
 #' adults vs subadults, run [simulate_category_bias()] twice with different
 #' `graves` values and plot each result separately.
+#'
+#' If `bias_result$wealth_scores$orig` is present (stored automatically by
+#' [simulate_category_bias()] when `store_wealth = TRUE`), the observed
+#' (non-simulated) distribution is overlaid as a bold black line, for
+#' comparison against the simulated split/lump envelope.
 #'
 #' @param bias_result Output from [simulate_category_bias()] run with
 #'   `store_wealth = TRUE`.
 #' @param measure Which wealth measure(s) to show: `"all"` (default, facets
 #'   across all four measures used in [plot_bias()]), `"combined"`
-#'   (prestige + sqrt-count bonus — the main wealth measure), `"prestige"`
+#'   (prestige + sqrt-count bonus -- the main wealth measure), `"prestige"`
 #'   (prestige only), or `"tot"` (TOT + 1).
 #' @param case Character. Case label added to the title.
 #' @param dates Character. Date range string added to the title.
@@ -594,8 +608,8 @@ plot_bias_wealth_density <- function(bias_result,
          "..., store_wealth = TRUE) to enable this plot.")
   }
 
-  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+√count",
-                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+√count")
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+\u221Acount",
+                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+\u221Acount")
 
   build_long <- function(lst, direction) {
     do.call(rbind, lapply(seq_along(lst), function(i) {
@@ -617,23 +631,41 @@ plot_bias_wealth_density <- function(bias_result,
   )
   wide$sim_id <- paste(wide$direction, wide$sim)
 
+  has_orig <- !is.null(bias_result$wealth_scores$orig)
+  if (!has_orig) {
+    warning("bias_result has no stored original distribution (wealth_scores$orig). ",
+            "Re-run simulate_category_bias(..., store_wealth = TRUE) to show it. ",
+            "Plotting the simulations without it.")
+  }
+
   if (measure == "all") {
     long <- tidyr::pivot_longer(wide, cols = c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt"),
                                  names_to = "Method", values_to = "value")
     long$Method <- factor(label_map[long$Method],
-                           levels = c("TOT+1", "TOT+1+√count",
-                                      "Mean Prestige+1", "Mean Prestige+1+√count"))
+                           levels = c("TOT+1", "TOT+1+\u221Acount",
+                                      "Mean Prestige+1", "Mean Prestige+1+\u221Acount"))
     facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2, scales = "free")
     x_lab <- "Wealth value"
+
+    if (has_orig) {
+      orig_long <- tidyr::pivot_longer(bias_result$wealth_scores$orig,
+                                        cols = c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt"),
+                                        names_to = "Method", values_to = "value")
+      orig_long$Method <- factor(label_map[orig_long$Method], levels = levels(long$Method))
+    }
   } else {
     col <- switch(measure, combined = "prestige_sqrt", prestige = "prestige", tot = "TOT")
     long <- data.frame(sim_id = wide$sim_id, direction = wide$direction, value = wide[[col]])
     facet_layer <- NULL
     x_lab <- switch(measure,
-      combined = "Combined wealth (prestige + √count)",
+      combined = "Combined wealth (prestige + \u221Acount)",
       prestige = "Prestige only",
       tot      = "TOT + 1"
     )
+
+    if (has_orig) {
+      orig_long <- data.frame(value = bias_result$wealth_scores$orig[[col]])
+    }
   }
 
   long$direction <- factor(long$direction, levels = c("Lump", "Split"))
@@ -645,8 +677,8 @@ plot_bias_wealth_density <- function(bias_result,
   )
 
   ttl <- paste0("Wealth distribution across category bias simulations", graves_label)
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
 
   p <- ggplot2::ggplot(long, ggplot2::aes(x = value, group = sim_id, colour = direction)) +
     ggplot2::stat_density(geom = "line", alpha = alpha, linewidth = 0.4) +
@@ -662,6 +694,14 @@ plot_bias_wealth_density <- function(bias_result,
     ) +
     ggplot2::labs(title = ttl, x = x_lab, y = "Density", colour = "Direction")
 
+  if (has_orig) {
+    p <- p + ggplot2::stat_density(
+      data = orig_long, ggplot2::aes(x = value), inherit.aes = FALSE,
+      geom = "line", colour = "black", linewidth = 1
+    ) +
+      ggplot2::labs(subtitle = "Black line = observed (original) distribution")
+  }
+
   if (!is.null(facet_layer)) p <- p + facet_layer
   p
 }
@@ -674,7 +714,7 @@ plot_bias_wealth_density <- function(bias_result,
 #' overlays them as faint lines coloured by whether categories were split or
 #' lumped in that simulation. This shows how category-recording decisions
 #' affect the whole shape of inequality (not just the summary Gini plotted
-#' by [plot_bias()]) — where lines bow apart, the inequality picture itself
+#' by [plot_bias()]) -- where lines bow apart, the inequality picture itself
 #' is sensitive to recording choices, not just its single Gini summary.
 #'
 #' Requires running [simulate_category_bias()] with `store_wealth = TRUE`,
@@ -682,16 +722,22 @@ plot_bias_wealth_density <- function(bias_result,
 #' object, so it is best used with modest `n_sims` and dataset sizes.
 #'
 #' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
-#' call [simulate_category_bias()] via its `graves` argument, not here — this
+#' call [simulate_category_bias()] via its `graves` argument, not here -- this
 #' function just labels which subset was used in the title. To compare
 #' adults vs subadults, run [simulate_category_bias()] twice with different
 #' `graves` values and plot each result separately.
+#'
+#' If `bias_result$wealth_scores$orig` is present (stored automatically by
+#' [simulate_category_bias()] when `store_wealth = TRUE`), the observed
+#' (non-simulated) distribution is overlaid as a bold black line, for
+#' comparison against the simulated split/lump envelope. The grey diagonal
+#' is the line of perfect equality, as usual for Lorenz curves.
 #'
 #' @param bias_result Output from [simulate_category_bias()] run with
 #'   `store_wealth = TRUE`.
 #' @param measure Which wealth measure(s) to show: `"all"` (default, facets
 #'   across all four measures used in [plot_bias()]), `"combined"`
-#'   (prestige + sqrt-count bonus — the main wealth measure), `"prestige"`
+#'   (prestige + sqrt-count bonus -- the main wealth measure), `"prestige"`
 #'   (prestige only), or `"tot"` (TOT + 1).
 #' @param case Character. Case label added to the title.
 #' @param dates Character. Date range string added to the title.
@@ -702,7 +748,7 @@ plot_bias_wealth_density <- function(bias_result,
 #' @export
 #' @examples
 #' \dontrun{
-#' df     <- read_qw_data(example_data_path())
+#' df    <- read_qw_data(example_data_path())
 #' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 #' plot_bias_wealth_lorenz(bias_w)
 #' plot_bias_wealth_lorenz(bias_w, measure = "combined")
@@ -716,8 +762,8 @@ plot_bias_wealth_lorenz <- function(bias_result,
          "..., store_wealth = TRUE) to enable this plot.")
   }
 
-  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+√count",
-                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+√count")
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+\u221Acount",
+                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+\u221Acount")
 
   .lorenz_coords <- function(x) {
     x  <- sort(x[!is.na(x)])
@@ -740,6 +786,13 @@ plot_bias_wealth_lorenz <- function(bias_result,
     }))
   }
 
+  has_orig <- !is.null(bias_result$wealth_scores$orig)
+  if (!has_orig) {
+    warning("bias_result has no stored original distribution (wealth_scores$orig). ",
+            "Re-run simulate_category_bias(..., store_wealth = TRUE) to show it. ",
+            "Plotting the simulations without it.")
+  }
+
   cols <- if (measure == "all") c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt")
           else switch(measure, combined = "prestige_sqrt", prestige = "prestige", tot = "TOT")
 
@@ -748,11 +801,16 @@ plot_bias_wealth_lorenz <- function(bias_result,
     build_lorenz(bias_result$wealth_scores$lump,  "Lump",  cols)
   )
 
+  if (has_orig) {
+    orig_long <- build_lorenz(list(bias_result$wealth_scores$orig), "Original", cols)
+  }
+
   if (measure == "all") {
     long$Method <- factor(label_map[long$Method],
-                           levels = c("TOT+1", "TOT+1+√count",
-                                      "Mean Prestige+1", "Mean Prestige+1+√count"))
+                           levels = c("TOT+1", "TOT+1+\u221Acount",
+                                      "Mean Prestige+1", "Mean Prestige+1+\u221Acount"))
     facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2)
+    if (has_orig) orig_long$Method <- factor(label_map[orig_long$Method], levels = levels(long$Method))
   } else {
     facet_layer <- NULL
   }
@@ -766,8 +824,8 @@ plot_bias_wealth_lorenz <- function(bias_result,
   )
 
   ttl <- paste0("Lorenz curves across category bias simulations", graves_label)
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
 
   p <- ggplot2::ggplot(long, ggplot2::aes(x = cum_pop, y = cum_wealth,
                                            group = sim_id, colour = direction)) +
@@ -785,6 +843,14 @@ plot_bias_wealth_lorenz <- function(bias_result,
     ) +
     ggplot2::labs(title = ttl, x = "Cumulative population share",
                   y = "Cumulative wealth share", colour = "Direction")
+
+  if (has_orig) {
+    p <- p + ggplot2::geom_line(
+      data = orig_long, ggplot2::aes(x = cum_pop, y = cum_wealth),
+      inherit.aes = FALSE, colour = "black", linewidth = 1
+    ) +
+      ggplot2::labs(subtitle = "Black line = observed (original) distribution")
+  }
 
   if (!is.null(facet_layer)) p <- p + facet_layer
   p
@@ -807,11 +873,11 @@ plot_physical_lorenz <- function(sizes, ineq = NULL, data_type = "Physical measu
   mean_s <- mean(sizes)
   abs_g  <- round(gini * mean_s, 2)
   ci_str <- if (!is.na(g_val["lower"] %||% NA))
-    paste0(" ±", round((g_val["upper"] - g_val["lower"]) / 2, 2)) else ""
+    paste0(" \u00B1", round((g_val["upper"] - g_val["lower"]) / 2, 2)) else ""
 
   ttl <- paste(data_type, "Lorenz Curve")
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
 
   ggplot2::ggplot(data.frame(Value = sizes), ggplot2::aes(Value)) +
     gglorenz::stat_lorenz(colour = "purple", geom = "path", linetype = "solid", linewidth = 1) +
@@ -837,8 +903,8 @@ plot_physical_density <- function(sizes, data_type = "Physical measure",
                                    case = NULL, dates = NULL) {
   sizes <- sizes[!is.na(sizes) & sizes > 0]
   ttl <- paste(data_type, "Distribution")
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "—", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "—", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
   ggplot2::ggplot(data.frame(Value = sizes), ggplot2::aes(x = Value)) +
     ggplot2::stat_density(geom = "line", colour = "purple", linewidth = 1) +
     ggplot2::geom_vline(xintercept = max(sizes), colour = "purple",

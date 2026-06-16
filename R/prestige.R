@@ -62,7 +62,7 @@ get_TOT_means <- function(tot_range) {
 
 #' Compute Bayesian (empirical prior) prestige estimates per type
 #'
-#' For types with n ≥ 2 occurrences, fits a Gamma prior using method of
+#' For types with n >= 2 occurrences, fits a Gamma prior using method of
 #' moments from the type's own TOT distribution (local empirical prior).
 #' For unique types (n = 1) a weak non-informative prior is used, and the
 #' credible interval is narrowed proportionally to the total sample size.
@@ -201,7 +201,7 @@ apply_prestige_bayesian <- function(bayes_df, df) {
 
 #' Compute sqrt-count bonus for each unit
 #'
-#' For each unit, sums √(count) − 1 across all types where count ≥ 1.
+#' For each unit, sums sqrt(count) - 1 across all types where count >= 1.
 #' This bonus accounts for quantity (e.g. 5 swords > 1 sword) without
 #' letting counts dominate.
 #'

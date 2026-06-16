@@ -10,7 +10,7 @@ decile_data(prestige_df)
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
 }
 \value{
-A data frame with columns \code{wealth_rank} (1–10, factor),
+A data frame with columns \code{wealth_rank} (1-10, factor),
 \code{total_wealth} (share), \code{n_in_decile}, \code{cumulative_wealth}, \code{mid_point}.
 }
 \description{

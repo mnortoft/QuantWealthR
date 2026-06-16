@@ -10,7 +10,7 @@ Description: Tools for calculating prestige values, wealth scores, and inequalit
     mean-based prestige estimation, Gini coefficients with confidence intervals,
     Lorenz curves, decile distributions, category bias simulations, and a batch
     pipeline for multi-period datasets. Produces static ggplot2 visualisations.
-License: GPL (>= 3)
+License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
@@ -19,7 +19,6 @@ Imports:
     ggplot2 (>= 3.4.0),
     gglorenz,
     DescTools (>= 0.99.0),
-    scales,
     tidyr,
     ggtext
 Suggests:

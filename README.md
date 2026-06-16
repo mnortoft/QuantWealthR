@@ -19,7 +19,7 @@ library(QuantWealthR)
 ```
 
 Required packages are installed automatically as dependencies:
-`dplyr`, `ggplot2`, `gglorenz`, `DescTools`, `ggtext`, `scales`, `tidyr`.
+`dplyr`, `ggplot2`, `gglorenz`, `DescTools`, `ggtext`, `tidyr`.
 
 A small example dataset is bundled with the package — see `example_data_path()` below to try the functions immediately without your own data.
 

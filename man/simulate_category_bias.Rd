@@ -26,7 +26,7 @@ columns for filtering; ignored if those columns are absent.}
 reduction (default 5).}
 
 \item{store_wealth}{Logical. If TRUE, stores per-grave wealth scores for
-every simulation (large object — use with small datasets). Default FALSE.}
+every simulation (large object -- use with small datasets). Default FALSE.}
 }
 \value{
 A list with the following elements, matching the app's output:
@@ -38,7 +38,7 @@ of length \code{n_sims}.
 \item \code{orig_gini_TOT}, \code{orig_gini_TOT_sqrt}, \code{orig_gini_prestige},
 \code{orig_gini_prestige_sqrt}: observed Gini values.
 \item \verb{means_split_*}, \verb{means_lump_*}, \verb{orig_mean_*}: mean wealth per
-simulation (for absolute Gini = G × mean).
+simulation (for absolute Gini = G x mean).
 \item \code{total_splits}, \code{total_lumped_cols}: integer vectors (length \code{n_sims})
 recording how many columns existed in each simulation.
 \item \code{n_sims}, \code{n_lump_groups}, \code{n_original_cols}.
@@ -64,8 +64,8 @@ using asinh of their median count.
 \strong{Lumping}: types sharing a name substring are candidates for random
 lumping into a single column.
 
-Four Gini measures are tracked: TOT+1, TOT+1+√count, Prestige+1, and
-Prestige+1+√count — for both split and lump scenarios.
+Four Gini measures are tracked: TOT+1, TOT+1+sqrt-count, Prestige+1, and
+Prestige+1+sqrt-count -- for both split and lump scenarios.
 }
 \examples{
 \dontrun{

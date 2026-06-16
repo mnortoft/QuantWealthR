@@ -18,7 +18,7 @@ plot_bias_wealth_density(
 
 \item{measure}{Which wealth measure(s) to show: \code{"all"} (default, facets
 across all four measures used in \code{\link[=plot_bias]{plot_bias()}}), \code{"combined"}
-(prestige + sqrt-count bonus — the main wealth measure), \code{"prestige"}
+(prestige + sqrt-count bonus -- the main wealth measure), \code{"prestige"}
 (prestige only), or \code{"tot"} (TOT + 1).}
 
 \item{case}{Character. Case label added to the title.}
@@ -35,7 +35,7 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 \description{
 \code{\link[=plot_bias]{plot_bias()}} summarises each simulation as a single Gini value. This
 function instead shows the full \emph{shape} of the simulated wealth
-distributions — one faint density line per simulation, coloured by
+distributions -- one faint density line per simulation, coloured by
 whether categories were split or lumped in that simulation. Where the
 lines overlap heavily, the distribution's shape is robust to recording
 decisions; where they fan out, it is sensitive to them.
@@ -46,10 +46,15 @@ which keeps per-grave wealth scores for every simulation. This is a large
 object, so it is best used with modest \code{n_sims} and dataset sizes.
 
 The grave subset (\code{"adults"}, \code{"all"}, or \code{"subadults"}) is fixed when you
-call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here — this
+call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here -- this
 function just labels which subset was used in the title. To compare
 adults vs subadults, run \code{\link[=simulate_category_bias]{simulate_category_bias()}} twice with different
 \code{graves} values and plot each result separately.
+
+If \code{bias_result$wealth_scores$orig} is present (stored automatically by
+\code{\link[=simulate_category_bias]{simulate_category_bias()}} when \code{store_wealth = TRUE}), the observed
+(non-simulated) distribution is overlaid as a bold black line, for
+comparison against the simulated split/lump envelope.
 }
 \examples{
 \dontrun{

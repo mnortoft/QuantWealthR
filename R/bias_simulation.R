@@ -1,5 +1,5 @@
 # ============================================================================
-# Category bias simulation — matches app.R simulate_category_bias() exactly
+# Category bias simulation -- matches app.R simulate_category_bias() exactly
 # ============================================================================
 
 #' Simulate the effect of category splitting and lumping on Gini coefficients
@@ -16,8 +16,8 @@
 #' **Lumping**: types sharing a name substring are candidates for random
 #' lumping into a single column.
 #'
-#' Four Gini measures are tracked: TOT+1, TOT+1+√count, Prestige+1, and
-#' Prestige+1+√count — for both split and lump scenarios.
+#' Four Gini measures are tracked: TOT+1, TOT+1+sqrt-count, Prestige+1, and
+#' Prestige+1+sqrt-count -- for both split and lump scenarios.
 #'
 #' @param df Data frame. First column = unit ID; remaining columns = numeric
 #'   counts (after [read_qw_data()] or equivalent).
@@ -28,7 +28,7 @@
 #' @param base_max_split Integer. Maximum split count before adaptive
 #'   reduction (default 5).
 #' @param store_wealth Logical. If TRUE, stores per-grave wealth scores for
-#'   every simulation (large object — use with small datasets). Default FALSE.
+#'   every simulation (large object -- use with small datasets). Default FALSE.
 #' @return A list with the following elements, matching the app's output:
 #'   - `ginis_split_TOT`, `ginis_lump_TOT`, `ginis_split_TOT_sqrt`,
 #'     `ginis_lump_TOT_sqrt`, `ginis_split_prestige`, `ginis_lump_prestige`,
@@ -37,7 +37,7 @@
 #'   - `orig_gini_TOT`, `orig_gini_TOT_sqrt`, `orig_gini_prestige`,
 #'     `orig_gini_prestige_sqrt`: observed Gini values.
 #'   - `means_split_*`, `means_lump_*`, `orig_mean_*`: mean wealth per
-#'     simulation (for absolute Gini = G × mean).
+#'     simulation (for absolute Gini = G x mean).
 #'   - `total_splits`, `total_lumped_cols`: integer vectors (length `n_sims`)
 #'     recording how many columns existed in each simulation.
 #'   - `n_sims`, `n_lump_groups`, `n_original_cols`.
@@ -122,7 +122,7 @@ simulate_category_bias <- function(df,
   lower_cols <- tolower(gg_cols)
 
   # ---- High-count cap ------------------------------------------------------
-  high_count_pats <- c("bead","ornament","pearl","perle","anhänger","pendant",
+  high_count_pats <- c("bead","ornament","pearl","perle","anh\u00E4nger","pendant",
                         "pebble","sherd","shell","arrowhead","tooth","teeth")
   is_high <- sapply(lower_cols, function(col)
     any(sapply(high_count_pats, function(p) grepl(p, col, fixed = TRUE))))
@@ -371,7 +371,7 @@ simulate_category_bias <- function(df,
   lower   <- tolower(col_names)
   adj     <- integer(n)
   matched <- rep(NA_character_, n)
-  special_patterns <- c("bead","ornament","pearl","perle","anhänger",
+  special_patterns <- c("bead","ornament","pearl","perle","anh\u00E4nger",
                          "pendant","pebble","sherd","shell","arrowhead")
   for (i in seq_len(n)) {
     ci <- lower[i]; best_count <- 0L; best_string <- NA_character_

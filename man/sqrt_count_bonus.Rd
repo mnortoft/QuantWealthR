@@ -16,7 +16,7 @@ all numeric columns identified by \code{\link[=identify_count_columns]{identify_
 Numeric vector of length \code{nrow(df)}.
 }
 \description{
-For each unit, sums √(count) − 1 across all types where count ≥ 1.
+For each unit, sums sqrt(count) - 1 across all types where count >= 1.
 This bonus accounts for quantity (e.g. 5 swords > 1 sword) without
 letting counts dominate.
 }

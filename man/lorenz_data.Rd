@@ -10,7 +10,7 @@ lorenz_data(prestige_df)
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
 }
 \value{
-A data frame with columns \code{cum_pop} (0–1), \code{cum_wealth} (0–1),
+A data frame with columns \code{cum_pop} (0-1), \code{cum_wealth} (0-1),
 and \code{measure} (factor: "combined", "prestige", "TOT+1").
 }
 \description{

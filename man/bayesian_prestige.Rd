@@ -14,7 +14,7 @@ A data frame with columns \code{Type}, \code{bayes_est}, \code{lowerCI},
 \code{upperCI}, \code{prior_type}, \code{item_n}, \code{observed_mean}.
 }
 \description{
-For types with n ≥ 2 occurrences, fits a Gamma prior using method of
+For types with n >= 2 occurrences, fits a Gamma prior using method of
 moments from the type's own TOT distribution (local empirical prior).
 For unique types (n = 1) a weak non-informative prior is used, and the
 credible interval is narrowed proportionally to the total sample size.

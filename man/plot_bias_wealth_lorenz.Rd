@@ -18,7 +18,7 @@ plot_bias_wealth_lorenz(
 
 \item{measure}{Which wealth measure(s) to show: \code{"all"} (default, facets
 across all four measures used in \code{\link[=plot_bias]{plot_bias()}}), \code{"combined"}
-(prestige + sqrt-count bonus — the main wealth measure), \code{"prestige"}
+(prestige + sqrt-count bonus -- the main wealth measure), \code{"prestige"}
 (prestige only), or \code{"tot"} (TOT + 1).}
 
 \item{case}{Character. Case label added to the title.}
@@ -38,7 +38,7 @@ Builds a Lorenz curve for each simulation stored in a
 overlays them as faint lines coloured by whether categories were split or
 lumped in that simulation. This shows how category-recording decisions
 affect the whole shape of inequality (not just the summary Gini plotted
-by \code{\link[=plot_bias]{plot_bias()}}) — where lines bow apart, the inequality picture itself
+by \code{\link[=plot_bias]{plot_bias()}}) -- where lines bow apart, the inequality picture itself
 is sensitive to recording choices, not just its single Gini summary.
 }
 \details{
@@ -47,14 +47,20 @@ which keeps per-grave wealth scores for every simulation. This is a large
 object, so it is best used with modest \code{n_sims} and dataset sizes.
 
 The grave subset (\code{"adults"}, \code{"all"}, or \code{"subadults"}) is fixed when you
-call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here — this
+call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \code{graves} argument, not here -- this
 function just labels which subset was used in the title. To compare
 adults vs subadults, run \code{\link[=simulate_category_bias]{simulate_category_bias()}} twice with different
 \code{graves} values and plot each result separately.
+
+If \code{bias_result$wealth_scores$orig} is present (stored automatically by
+\code{\link[=simulate_category_bias]{simulate_category_bias()}} when \code{store_wealth = TRUE}), the observed
+(non-simulated) distribution is overlaid as a bold black line, for
+comparison against the simulated split/lump envelope. The grey diagonal
+is the line of perfect equality, as usual for Lorenz curves.
 }
 \examples{
 \dontrun{
-df     <- read_qw_data(example_data_path())
+df    <- read_qw_data(example_data_path())
 bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 plot_bias_wealth_lorenz(bias_w)
 plot_bias_wealth_lorenz(bias_w, measure = "combined")

@@ -19,8 +19,8 @@ plot_lorenz(
 the coloured Gini annotation (Absolute Gini, G values, mean/median,
 sample size, subadult Gini) to the plot interior, exactly as in the app.}
 
-\item{case}{Character. Culture or period name (e.g. \code{"Baden Budakalász"}).
-Appended to the title after " — ".}
+\item{case}{Character. Culture or period name (e.g. \code{"Baden Budakalasz"}).
+Appended to the title after " -- ".}
 
 \item{dates}{Character. Date range string (e.g. \code{"3360 - 2890 BCE"} or the
 output of \code{\link[=format_dates]{format_dates()}}).  Appended after case.}
@@ -40,7 +40,7 @@ the full Gini annotation panel from \code{\link[=inequality_summary]{inequality_
 \dontrun{
 pres <- calculate_prestige(df)
 ineq <- inequality_summary(pres)
-plot_lorenz(pres, ineq, case = "Baden Budakalász",
+plot_lorenz(pres, ineq, case = "Baden Budakalasz",
             dates = format_dates(-3360, -2890))
 }
 }

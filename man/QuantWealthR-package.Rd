@@ -12,7 +12,7 @@ available in the QuantWealth online application
 connection.
 }
 \details{
-\subsection{Main workflow — count data (grave goods, hoard types, house objects)}{
+\subsection{Main workflow -- count data (grave goods, hoard types, house objects)}{
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{library(QuantWealthR)
 
@@ -25,7 +25,7 @@ pres <- calculate_prestige(df, method = "bayesian")
 # 3. Compute Gini + inequality summary
 ineq <- inequality_summary(pres)
 ineq$gini_combined        # main Gini
-ineq$abs_gini_combined    # absolute Gini (G × mean wealth)
+ineq$abs_gini_combined    # absolute Gini (G x mean wealth)
 
 # 4. Visualise
 plot_prestige(pres)           # prestige boxplot (ggplot2)
@@ -41,7 +41,7 @@ plot_bias(bias)
 
 \subsection{Physical measure data (house floor area, mound volume, etc.)}{
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{sizes <- c(40, 55, 80, 120, 200, 350)   # e.g. house areas in m²
+\if{html}{\out{<div class="sourceCode">}}\preformatted{sizes <- c(40, 55, 80, 120, 200, 350)   # e.g. house areas in m^2
 physical_measure_gini(sizes)
 plot_physical_lorenz(sizes)
 }\if{html}{\out{</div>}}

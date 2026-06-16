@@ -5,7 +5,7 @@
 #' (<https://quantwealth.eu>), without requiring a web browser or internet
 #' connection.
 #'
-#' ## Main workflow — count data (grave goods, hoard types, house objects)
+#' ## Main workflow -- count data (grave goods, hoard types, house objects)
 #'
 #' ```
 #' library(QuantWealthR)
@@ -19,7 +19,7 @@
 #' # 3. Compute Gini + inequality summary
 #' ineq <- inequality_summary(pres)
 #' ineq$gini_combined        # main Gini
-#' ineq$abs_gini_combined    # absolute Gini (G × mean wealth)
+#' ineq$abs_gini_combined    # absolute Gini (G x mean wealth)
 #'
 #' # 4. Visualise
 #' plot_prestige(pres)           # prestige boxplot (ggplot2)
@@ -35,7 +35,7 @@
 #' ## Physical measure data (house floor area, mound volume, etc.)
 #'
 #' ```
-#' sizes <- c(40, 55, 80, 120, 200, 350)   # e.g. house areas in m²
+#' sizes <- c(40, 55, 80, 120, 200, 350)   # e.g. house areas in m^2
 #' physical_measure_gini(sizes)
 #' plot_physical_lorenz(sizes)
 #' ```
@@ -70,4 +70,6 @@
 #' * Accompanying paper: <https://doi.org/10.31235/osf.io/wzcqy_v2>
 #'
 #' @keywords internal
+#' @importFrom stats median qgamma var
+#' @importFrom utils read.csv
 "_PACKAGE"

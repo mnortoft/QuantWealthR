@@ -5,7 +5,7 @@
 #' Calculate Gini coefficient(s) for a wealth vector
 #'
 #' A thin wrapper around [DescTools::Gini()] that selects the confidence
-#' interval method automatically: bootstrap CIs for n ≤ 500, point estimate
+#' interval method automatically: bootstrap CIs for n <= 500, point estimate
 #' only for larger samples.
 #'
 #' @param x Numeric vector of wealth values (must be > 0 for meaningful
@@ -15,7 +15,7 @@
 #'   without distorting the lower tail.
 #' @param conf_level Numeric confidence level for the bootstrap CI
 #'   (default 0.80, matching the app). Set to NA to skip CI.
-#' @param n_boot Number of bootstrap replicates when n ≤ 500 (default 500).
+#' @param n_boot Number of bootstrap replicates when n <= 500 (default 500).
 #' @return Named numeric vector: `gini`, and (if CI computed) `lower`, `upper`.
 #' @export
 #' @examples
@@ -47,7 +47,7 @@ calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
 #' three wealth measures and returns a tidy summary list.
 #'
 #' The three measures are:
-#' * **combined** (`combined_total`): prestige + sqrt-count bonus — the
+#' * **combined** (`combined_total`): prestige + sqrt-count bonus -- the
 #'   recommended main measure.
 #' * **prestige** (`prestige_total`): prestige weights only (no quantity
 #'   bonus).
@@ -59,11 +59,11 @@ calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
 #'
 #' @param prestige_df Output from [calculate_prestige()].
 #' @param conf_level Numeric CI level (default 0.80). Set NA to skip CI.
-#' @param n_boot Bootstrap replicates (default 500, used when n ≤ 500).
+#' @param n_boot Bootstrap replicates (default 500, used when n <= 500).
 #' @return A list with elements:
 #'   - `gini_combined`, `gini_prestige`, `gini_tot`: named numeric vectors
 #'     from [calculate_gini()].
-#'   - `abs_gini_combined`: absolute Gini = Gini × mean wealth.
+#'   - `abs_gini_combined`: absolute Gini = Gini x mean wealth.
 #'   - `mean_wealth`, `median_wealth`, `min_wealth`, `max_wealth`: summary
 #'     statistics of `combined_total`.
 #'   - `n`: number of observations used.
@@ -143,7 +143,7 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
 #' cumulative wealth share) for each of the three wealth measures.
 #'
 #' @param prestige_df Output from [calculate_prestige()].
-#' @return A data frame with columns `cum_pop` (0–1), `cum_wealth` (0–1),
+#' @return A data frame with columns `cum_pop` (0-1), `cum_wealth` (0-1),
 #'   and `measure` (factor: "combined", "prestige", "TOT+1").
 #' @export
 lorenz_data <- function(prestige_df) {
@@ -159,7 +159,7 @@ lorenz_data <- function(prestige_df) {
   }
 
   combined <- .lorenz_coords(df$combined_total)
-  combined$measure <- "combined (prestige + √counts)"
+  combined$measure <- "combined (prestige + \u221Acounts)"
 
   prestige <- .lorenz_coords(df$prestige_total)
   prestige$measure <- "prestige only"
@@ -169,7 +169,7 @@ lorenz_data <- function(prestige_df) {
 
   out        <- rbind(combined, prestige, tot)
   out$measure <- factor(out$measure,
-                        levels = c("combined (prestige + √counts)",
+                        levels = c("combined (prestige + \u221Acounts)",
                                    "prestige only", "TOT + 1"))
   out
 }
@@ -181,7 +181,7 @@ lorenz_data <- function(prestige_df) {
 #' held by each decile.
 #'
 #' @param prestige_df Output from [calculate_prestige()].
-#' @return A data frame with columns `wealth_rank` (1–10, factor),
+#' @return A data frame with columns `wealth_rank` (1-10, factor),
 #'   `total_wealth` (share), `n_in_decile`, `cumulative_wealth`, `mid_point`.
 #' @export
 decile_data <- function(prestige_df) {
@@ -212,7 +212,7 @@ decile_data <- function(prestige_df) {
 #' Gini coefficient for physical measure data (e.g. house floor area)
 #'
 #' @param sizes Numeric vector of physical measure values (e.g. house areas
-#'   in m²).  All values must be positive.
+#'   in m^2).  All values must be positive.
 #' @param conf_level Numeric CI level (default 0.80). Set NA to skip CI.
 #' @param n_boot Bootstrap replicates (default 2000).
 #' @return Named numeric vector: `gini`, `lower`, `upper`.

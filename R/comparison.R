@@ -10,12 +10,12 @@
 #' ordered by Gini value.  Works for both count data and physical measure data.
 #'
 #' @param pipeline_result Output from [qw_pipeline()].
-#' @param measure For count data: which Gini to plot — `"combined"` (default,
+#' @param measure For count data: which Gini to plot -- `"combined"` (default,
 #'   prestige + sqrt-count bonus), `"prestige"`, or `"tot"`.  Ignored for
 #'   physical measure pipelines.
 #' @param order_by `"gini"` (default, ascending) or `"case"` (original order).
 #' @param title Optional plot title.
-#' @param abs_gini Logical. If TRUE, also shows the absolute Gini (G × mean
+#' @param abs_gini Logical. If TRUE, also shows the absolute Gini (G x mean
 #'   wealth) as a secondary point in a different colour. Default FALSE.
 #' @return A [ggplot2::ggplot] object.
 #' @export
@@ -46,7 +46,7 @@ plot_gini_comparison <- function(pipeline_result,
       upper = NA_real_,
       stringsAsFactors = FALSE
     )
-    # Parse CI string "[low–high]" if present
+    # Parse CI string "[low-high]" if present
     if ("gini_ci" %in% names(df) && !all(is.na(df$gini_ci))) {
       ci <- regmatches(df$gini_ci,
                        regexpr("[0-9.]+.+[0-9.]+", df$gini_ci))
@@ -87,7 +87,7 @@ plot_gini_comparison <- function(pipeline_result,
     }
 
     y_lab <- switch(measure,
-      combined = "Gini (prestige + √counts)",
+      combined = "Gini (prestige + \u221Acounts)",
       prestige = "Gini (prestige only)",
       tot      = "Gini (TOT + 1)"
     )
@@ -128,7 +128,7 @@ plot_gini_comparison <- function(pipeline_result,
     p <- p + ggplot2::geom_point(
       ggplot2::aes(x = abs_g),
       colour = "#d6604d", size = 3, shape = 18
-    ) + ggplot2::labs(caption = "Green = Gini | Red diamond = Absolute Gini (G × mean wealth)")
+    ) + ggplot2::labs(caption = "Green = Gini | Red diamond = Absolute Gini (G \u00D7 mean wealth)")
   }
 
   p + ggplot2::geom_vline(xintercept = 0, colour = "grey80") +
@@ -175,7 +175,7 @@ plot_lorenz_comparison <- function(pipeline_result, title = NULL, cases = NULL) 
   ld_all$case <- factor(ld_all$case, levels = names(by_group))
 
   # Only show the combined measure (prestige + sqrt counts) for clarity
-  ld_combined <- ld_all[ld_all$measure == "combined (prestige + √counts)", ]
+  ld_combined <- ld_all[ld_all$measure == "combined (prestige + \u221Acounts)", ]
 
   # Annotate with Gini values from summary
   summary_df <- pipeline_result$summary
