@@ -10,11 +10,17 @@ read_qw_data(filepath)
 \item{filepath}{Path to a CSV (.csv) or Excel (.xlsx / .xls) file.}
 }
 \value{
-A data frame with zeros converted to NA in numeric columns.
+A data frame with zeros converted to NA in numeric columns (except
+\code{lat}, \code{lng}, \code{adult_count}, \code{subadult_count}).
 }
 \description{
 Auto-detects the CSV separator. Zeros in numeric columns (except column 1)
-are converted to NA to represent absence.
+are converted to NA to represent absence -- this is meant for grave-good /
+artefact count columns, where 0 should be read as "not recorded" rather
+than "recorded as none". \code{lat}, \code{lng}, \code{adult_count}, and \code{subadult_count}
+are excluded from this conversion, because 0 is a genuine, informative
+value for all four (a real coordinate near the equator/prime meridian, or
+a grave with zero adults/subadults rather than missing age data).
 }
 \examples{
 # Load the bundled example dataset

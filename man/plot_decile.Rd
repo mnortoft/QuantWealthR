@@ -4,7 +4,12 @@
 \alias{plot_decile}
 \title{Plot decile wealth distribution}
 \usage{
-plot_decile(prestige_df, case = NULL, dates = NULL)
+plot_decile(
+  prestige_df,
+  case = NULL,
+  dates = NULL,
+  graves = c("adults", "all", "subadults")
+)
 }
 \arguments{
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
@@ -12,6 +17,10 @@ plot_decile(prestige_df, case = NULL, dates = NULL)
 \item{case}{Character. Case/site/period label shown on the x-axis.}
 
 \item{dates}{Character. Date range string.}
+
+\item{graves}{Which graves to use: \code{"adults"} (default, matching prior
+behaviour), \code{"all"}, or \code{"subadults"}. Ignored if \code{prestige_df} has no
+\code{is_adult_grave} column (age separation was not used).}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.

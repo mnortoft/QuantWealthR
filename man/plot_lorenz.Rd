@@ -9,7 +9,8 @@ plot_lorenz(
   ineq_summary = NULL,
   case = NULL,
   dates = NULL,
-  method = "Bayesian (empirical)"
+  method = "Bayesian (empirical)",
+  graves = c("adults", "all", "subadults")
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ output of \code{\link[=format_dates]{format_dates()}}).  Appended after case.}
 
 \item{method}{Character label shown in the annotation, e.g.
 \code{"Bayesian (empirical)"}.  Ignored when \code{ineq_summary} is NULL.}
+
+\item{graves}{Which graves to use: \code{"adults"} (default, matching prior
+behaviour), \code{"all"}, or \code{"subadults"}. Ignored if \code{prestige_df} has no
+\code{is_adult_grave} column (age separation was not used).}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.

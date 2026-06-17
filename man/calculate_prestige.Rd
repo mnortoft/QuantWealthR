@@ -32,7 +32,12 @@ with added columns \code{raw_TOT}, \code{prestige_total}, and \code{combined_tot
 If \code{adult_count} / \code{subadult_count} columns are present and \code{use_age_sep}
 is TRUE, prestige weights are estimated from adult graves only, and
 \code{combined_total} is divided by the number of adults (or subadults for
-subadult-only graves) to give per-capita wealth.
+subadult-only graves) to give per-capita wealth. A grave with no age
+information recorded at all (\code{adult_count == 0} and \code{subadult_count == 0})
+is, by default, classified as an adult grave and treated as containing
+exactly one adult for per-capita division -- this is a deliberate
+modelling assumption, not a missing-data error, and a \code{warning()} is
+issued whenever it is applied so it isn't silent.
 }
 \examples{
 df <- data.frame(

@@ -143,12 +143,23 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
 #' cumulative wealth share) for each of the three wealth measures.
 #'
 #' @param prestige_df Output from [calculate_prestige()].
+#' @param graves Which graves to use: `"adults"` (default, matching prior
+#'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
+#'   `is_adult_grave` column (age separation was not used).
 #' @return A data frame with columns `cum_pop` (0-1), `cum_wealth` (0-1),
 #'   and `measure` (factor: "combined", "prestige", "TOT+1").
 #' @export
-lorenz_data <- function(prestige_df) {
+lorenz_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
+  graves  <- match.arg(graves)
   has_age <- "is_adult_grave" %in% names(prestige_df)
-  df      <- if (has_age) prestige_df[prestige_df$is_adult_grave, ] else prestige_df
+
+  df <- if (!has_age || graves == "all") {
+    prestige_df
+  } else if (graves == "adults") {
+    prestige_df[prestige_df$is_adult_grave, ]
+  } else {
+    prestige_df[prestige_df$is_subadult_only, ]
+  }
 
   .lorenz_coords <- function(x) {
     x  <- sort(x[!is.na(x)])
@@ -181,12 +192,23 @@ lorenz_data <- function(prestige_df) {
 #' held by each decile.
 #'
 #' @param prestige_df Output from [calculate_prestige()].
+#' @param graves Which graves to use: `"adults"` (default, matching prior
+#'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
+#'   `is_adult_grave` column (age separation was not used).
 #' @return A data frame with columns `wealth_rank` (1-10, factor),
 #'   `total_wealth` (share), `n_in_decile`, `cumulative_wealth`, `mid_point`.
 #' @export
-decile_data <- function(prestige_df) {
+decile_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
+  graves  <- match.arg(graves)
   has_age <- "is_adult_grave" %in% names(prestige_df)
-  df      <- if (has_age) prestige_df[prestige_df$is_adult_grave, ] else prestige_df
+
+  df <- if (!has_age || graves == "all") {
+    prestige_df
+  } else if (graves == "adults") {
+    prestige_df[prestige_df$is_adult_grave, ]
+  } else {
+    prestige_df[prestige_df$is_subadult_only, ]
+  }
 
   df |>
     dplyr::arrange(combined_total) |>

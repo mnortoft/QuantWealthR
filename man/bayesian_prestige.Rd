@@ -15,8 +15,13 @@ A data frame with columns \code{Type}, \code{bayes_est}, \code{lowerCI},
 }
 \description{
 For types with n >= 2 occurrences, fits a Gamma prior using method of
-moments from the type's own TOT distribution (local empirical prior).
-For unique types (n = 1) a weak non-informative prior is used, and the
+moments from the type's own TOT distribution (local empirical prior). If
+every observed TOT value for a type happens to be identical (sample
+variance of 0), a fixed variance floor of 0.1 is substituted to keep the
+method-of-moments calculation defined; this is an intentional design
+choice that can narrow the credible interval for small, coincidentally
+uniform samples (see inline comments in the source for details). For
+unique types (n = 1) a weak non-informative prior is used, and the
 credible interval is narrowed proportionally to the total sample size.
 }
 \examples{

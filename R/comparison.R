@@ -3,6 +3,32 @@
 # Work with qw_pipeline() output to compare cases side by side
 # ============================================================================
 
+#' Parse "\[low-high\]" Gini CI strings into numeric lower/upper bounds
+#'
+#' Internal helper shared by both branches of [plot_gini_comparison()] so
+#' the CI string format (e.g. `"[0.42-0.61]"`) is only parsed one way.
+#' Uses a single `<number><non-number-separator><number>` match per string,
+#' which is safe against CI strings that contain extra digits elsewhere
+#' (the previous physical-measure branch used a greedier, less precise
+#' regex than the count branch; this is now the same regex for both).
+#'
+#' @param ci_strings Character vector, e.g. `df$gini_ci`.
+#' @param n Expected number of rows (`nrow(df)`); used to sanity-check that
+#'   every row produced exactly one match.
+#' @return A list with `lower` and `upper` numeric vectors, or `NULL` if the
+#'   number of matches didn't equal `n` (parsing failed / format mismatch).
+#' @noRd
+.parse_gini_ci <- function(ci_strings, n) {
+  ci <- regmatches(ci_strings, regexpr("[0-9.]+[^0-9.]+[0-9.]+", ci_strings))
+  if (length(ci) != n) return(NULL)
+  parts <- strsplit(ci, "[^0-9.]+")
+  list(
+    lower = as.numeric(sapply(parts, `[[`, 1)),
+    upper = as.numeric(sapply(parts, `[[`, 2))
+  )
+}
+
+
 #' Compare Gini coefficients across cases
 #'
 #' Takes the output of [qw_pipeline()] and produces a point + error bar plot
@@ -48,12 +74,10 @@ plot_gini_comparison <- function(pipeline_result,
     )
     # Parse CI string "[low-high]" if present
     if ("gini_ci" %in% names(df) && !all(is.na(df$gini_ci))) {
-      ci <- regmatches(df$gini_ci,
-                       regexpr("[0-9.]+.+[0-9.]+", df$gini_ci))
-      if (length(ci) == nrow(df)) {
-        parts  <- strsplit(ci, "[^0-9.]+")
-        plot_df$lower <- as.numeric(sapply(parts, `[[`, 1))
-        plot_df$upper <- as.numeric(sapply(parts, `[[`, 2))
+      ci_bounds <- .parse_gini_ci(df$gini_ci, nrow(df))
+      if (!is.null(ci_bounds)) {
+        plot_df$lower <- ci_bounds$lower
+        plot_df$upper <- ci_bounds$upper
       }
     }
     y_lab <- "Gini coefficient"
@@ -77,12 +101,10 @@ plot_gini_comparison <- function(pipeline_result,
 
     # Parse CI string
     if ("gini_ci" %in% names(df) && !all(is.na(df$gini_ci))) {
-      ci <- regmatches(df$gini_ci,
-                       regexpr("[0-9.]+[^0-9.]+[0-9.]+", df$gini_ci))
-      if (length(ci) == nrow(df)) {
-        parts       <- strsplit(ci, "[^0-9.]+")
-        plot_df$lower <- as.numeric(sapply(parts, `[[`, 1))
-        plot_df$upper <- as.numeric(sapply(parts, `[[`, 2))
+      ci_bounds <- .parse_gini_ci(df$gini_ci, nrow(df))
+      if (!is.null(ci_bounds)) {
+        plot_df$lower <- ci_bounds$lower
+        plot_df$upper <- ci_bounds$upper
       }
     }
 

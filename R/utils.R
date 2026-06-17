@@ -64,10 +64,16 @@ identify_count_columns <- function(df) {
 #' Read a CSV or Excel data file and clean zeros to NA
 #'
 #' Auto-detects the CSV separator. Zeros in numeric columns (except column 1)
-#' are converted to NA to represent absence.
+#' are converted to NA to represent absence -- this is meant for grave-good /
+#' artefact count columns, where 0 should be read as "not recorded" rather
+#' than "recorded as none". `lat`, `lng`, `adult_count`, and `subadult_count`
+#' are excluded from this conversion, because 0 is a genuine, informative
+#' value for all four (a real coordinate near the equator/prime meridian, or
+#' a grave with zero adults/subadults rather than missing age data).
 #'
 #' @param filepath Path to a CSV (.csv) or Excel (.xlsx / .xls) file.
-#' @return A data frame with zeros converted to NA in numeric columns.
+#' @return A data frame with zeros converted to NA in numeric columns (except
+#'   `lat`, `lng`, `adult_count`, `subadult_count`).
 #' @export
 #' @examples
 #' # Load the bundled example dataset
@@ -87,8 +93,10 @@ read_qw_data <- function(filepath) {
     sep <- .auto_detect_sep(filepath)
     df  <- read.csv(filepath, sep = sep, stringsAsFactors = FALSE)
   }
+  zero_to_na_excluded <- c("lat", "lng", "adult_count", "subadult_count")
   if (ncol(df) > 1) {
     for (i in 2:ncol(df)) {
+      if (tolower(names(df)[i]) %in% zero_to_na_excluded) next
       num <- suppressWarnings(as.numeric(df[[i]]))
       if (!all(is.na(num))) {
         num[num == 0] <- NA

@@ -4,10 +4,14 @@
 \alias{decile_data}
 \title{Prepare decile distribution data for plotting}
 \usage{
-decile_data(prestige_df)
+decile_data(prestige_df, graves = c("adults", "all", "subadults"))
 }
 \arguments{
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
+
+\item{graves}{Which graves to use: \code{"adults"} (default, matching prior
+behaviour), \code{"all"}, or \code{"subadults"}. Ignored if \code{prestige_df} has no
+\code{is_adult_grave} column (age separation was not used).}
 }
 \value{
 A data frame with columns \code{wealth_rank} (1-10, factor),

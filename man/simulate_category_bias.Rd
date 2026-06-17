@@ -6,6 +6,7 @@
 \usage{
 simulate_category_bias(
   df,
+  prestige_result = NULL,
   graves = c("adults", "all", "subadults"),
   n_sims = 100,
   base_max_split = 5,
@@ -16,9 +17,23 @@ simulate_category_bias(
 \item{df}{Data frame. First column = unit ID; remaining columns = numeric
 counts (after \code{\link[=read_qw_data]{read_qw_data()}} or equivalent).}
 
+\item{prestige_result}{Optional. The data frame returned by
+\code{\link[=calculate_prestige]{calculate_prestige()}} for this same dataset (run before any grave
+filtering). When supplied, the observed (non-simulated) prestige score
+used for \code{orig_gini_prestige}, \code{orig_gini_prestige_sqrt},
+\code{orig_mean_prestige}, \code{orig_mean_prestige_sqrt}, and
+\code{wealth_scores$orig} is taken directly from \code{calculate_prestige()}'s
+\code{prestige_total} / \code{combined_total} columns (matched by ID). If
+omitted, these values fall back to a simplified internal approximation
+and a warning is issued, since that approximation will not match
+\code{\link[=calculate_prestige]{calculate_prestige()}}'s output.}
+
 \item{graves}{Which graves to use: \code{"adults"} (default, matching the app),
-\code{"subadults"}, or \code{"all"}.  Requires \code{adult_count} / \code{subadult_count}
-columns for filtering; ignored if those columns are absent.}
+\code{"subadults"}, or \code{"all"}. \code{graves = "adults"} without an \code{adult_count}
+column falls back to \code{"all"} with a warning (rather than silently
+matching every row). \code{graves = "subadults"} without a \code{subadult_count}
+column raises an error, since there is no sensible "subadults" subset
+to fall back to.}
 
 \item{n_sims}{Integer. Number of Monte Carlo iterations (default 100).}
 
@@ -36,7 +51,9 @@ A list with the following elements, matching the app's output:
 \code{ginis_split_prestige_sqrt}, \code{ginis_lump_prestige_sqrt}: numeric vectors
 of length \code{n_sims}.
 \item \code{orig_gini_TOT}, \code{orig_gini_TOT_sqrt}, \code{orig_gini_prestige},
-\code{orig_gini_prestige_sqrt}: observed Gini values.
+\code{orig_gini_prestige_sqrt}: observed Gini values (the two \code{prestige}
+values use \code{calculate_prestige()} output when \code{prestige_result} is
+supplied).
 \item \verb{means_split_*}, \verb{means_lump_*}, \verb{orig_mean_*}: mean wealth per
 simulation (for absolute Gini = G x mean).
 \item \code{total_splits}, \code{total_lumped_cols}: integer vectors (length \code{n_sims})
@@ -46,8 +63,11 @@ recording how many columns existed in each simulation.
 \item \code{graves_used}: which graves were included (\code{"adults"}, \code{"subadults"},
 or \code{"all"}).
 \item \code{wealth_scores} (only when \code{store_wealth = TRUE}): a list with \code{split}
-and \code{lump}, each a list of \code{n_sims} data frames (columns: \code{grave_id},
-\code{TOT}, \code{TOT_sqrt}, \code{prestige}, \code{prestige_sqrt}).
+and \code{lump} (each a list of \code{n_sims} data frames with columns
+\code{grave_id}, \code{TOT}, \code{TOT_sqrt}, \code{prestige}, \code{prestige_sqrt}), plus
+\code{orig}, a single data frame with the same columns for the observed
+(non-simulated) distribution. \code{orig$prestige} / \code{orig$prestige_sqrt}
+come from \code{calculate_prestige()} when \code{prestige_result} is supplied.
 }
 }
 \description{
@@ -69,8 +89,9 @@ Prestige+1+sqrt-count -- for both split and lump scenarios.
 }
 \examples{
 \dontrun{
-df  <- read_qw_data("my_graves.csv")
-res <- simulate_category_bias(df, n_sims = 100)
+df    <- read_qw_data("my_graves.csv")
+pres  <- calculate_prestige(df)
+res   <- simulate_category_bias(df, pres, n_sims = 100)
 plot_bias(res, case = "Baden", dates = "3360-2890 BCE")
 }
 }

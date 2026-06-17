@@ -93,7 +93,13 @@ plot_prestige <- function(prestige_df, method = "bayesian",
       "Grave good type (* = subadults only)" else "Artefact type"
 
     p <- ggplot2::ggplot() +
-      ggplot2::scale_y_continuous(limits = c(1, NA), expand = ggplot2::expansion(mult = c(0, 0.05))) +
+      ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.05))) +
+      # coord_cartesian() clips the *view* at y = 0 (TOT counts can't be
+      # negative) without dropping data -- unlike scale_y_continuous(limits=),
+      # which would silently delete any geom_errorbar() row whose lowerCI
+      # (a Bayesian credible interval bound, which can mathematically dip
+      # below 0) falls outside the range, removing the whole error bar.
+      ggplot2::coord_cartesian(ylim = c(0, NA)) +
       ggplot2::geom_boxplot(
         data = tot_range,
         ggplot2::aes(x = Type_display, y = TOT),
@@ -138,7 +144,10 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 
     p <- ggplot2::ggplot(tot_range,
                           ggplot2::aes(x = Type_display, y = TOT)) +
-      ggplot2::scale_y_continuous(limits = c(1, NA), expand = ggplot2::expansion(mult = c(0, 0.05))) +
+      ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.05))) +
+      # See comment in the bayesian branch above: coord_cartesian() clips the
+      # view without dropping rows whose values fall outside it.
+      ggplot2::coord_cartesian(ylim = c(0, NA)) +
       ggplot2::geom_boxplot(outlier.shape = NA) +
       ggplot2::geom_jitter(width = 0.1, height = 0.1, size = 0.7, alpha = 0.5) +
       ggplot2::geom_point(ggplot2::aes(y = mean),
@@ -183,6 +192,9 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 #'   output of [format_dates()]).  Appended after case.
 #' @param method Character label shown in the annotation, e.g.
 #'   `"Bayesian (empirical)"`.  Ignored when `ineq_summary` is NULL.
+#' @param graves Which graves to use: `"adults"` (default, matching prior
+#'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
+#'   `is_adult_grave` column (age separation was not used).
 #' @return A [ggplot2::ggplot] object.
 #' @export
 #' @examples
@@ -194,11 +206,18 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 #' }
 plot_lorenz <- function(prestige_df, ineq_summary = NULL,
                          case = NULL, dates = NULL,
-                         method = "Bayesian (empirical)") {
-  ld <- lorenz_data(prestige_df)
+                         method = "Bayesian (empirical)",
+                         graves = c("adults", "all", "subadults")) {
+  graves <- match.arg(graves)
+  ld <- lorenz_data(prestige_df, graves = graves)
 
   # Build title exactly as the app does
-  ttl <- "Lorenz Curve and Ginis"
+  graves_label <- switch(graves,
+    adults    = " (adults only)",
+    all       = " (all graves)",
+    subadults = " (subadults only)"
+  )
+  ttl <- paste0("Lorenz Curve and Ginis", graves_label)
   if (!is.null(case) && nchar(case) > 0)
     ttl <- paste(ttl, "\u2014", case)
   if (!is.null(dates) && nchar(dates) > 0)
@@ -322,7 +341,7 @@ plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
 
   # Title: coloured HTML via ggtext, matching the app's colour scheme
   graves_label <- switch(graves,
-    all       = "",
+    all       = " (all graves)",
     adults    = " (adults only)",
     subadults = " (subadults only)"
   )
@@ -363,13 +382,31 @@ plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
 #' @param prestige_df Output from [calculate_prestige()].
 #' @param case Character. Case/site/period label shown on the x-axis.
 #' @param dates Character. Date range string.
+#' @param graves Which graves to use: `"adults"` (default, matching prior
+#'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
+#'   `is_adult_grave` column (age separation was not used).
 #' @return A [ggplot2::ggplot] object.
 #' @export
-plot_decile <- function(prestige_df, case = NULL, dates = NULL) {
-  dd <- decile_data(prestige_df)
-  max_w <- max(if ("is_adult_grave" %in% names(prestige_df))
+plot_decile <- function(prestige_df, case = NULL, dates = NULL,
+                         graves = c("adults", "all", "subadults")) {
+  graves  <- match.arg(graves)
+  dd      <- decile_data(prestige_df, graves = graves)
+  has_age <- "is_adult_grave" %in% names(prestige_df)
+
+  max_subset <- if (!has_age || graves == "all") {
+    prestige_df$combined_total
+  } else if (graves == "adults") {
     prestige_df$combined_total[prestige_df$is_adult_grave]
-    else prestige_df$combined_total, na.rm = TRUE)
+  } else {
+    prestige_df$combined_total[prestige_df$is_subadult_only]
+  }
+  max_w <- max(max_subset, na.rm = TRUE)
+
+  graves_label <- switch(graves,
+    adults    = " (adults only)",
+    all       = " (all graves)",
+    subadults = " (subadults only)"
+  )
 
   x_parts <- c()
   if (!is.null(case)  && nchar(case)  > 0) x_parts <- c(x_parts, case)
@@ -387,7 +424,7 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL) {
     ggplot2::theme(axis.ticks.x = ggplot2::element_blank(),
                    panel.grid.major.x = ggplot2::element_blank(),
                    panel.grid.minor.x = ggplot2::element_blank()) +
-    ggplot2::labs(title = "Decile distribution", x = NULL,
+    ggplot2::labs(title = paste0("Decile distribution", graves_label), x = NULL,
                   y = "Proportion of total wealth", fill = "Decile")
 }
 
@@ -479,7 +516,7 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
   )
 
   graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = "",
+    all       = " (all graves)",
     adults    = " (adults only)",
     subadults = " (subadults only)"
   )
@@ -524,7 +561,11 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
   )
 
   ggplot2::ggplot(hist_data, ggplot2::aes(x = Gini, y = 0, colour = Direction)) +
-    ggplot2::geom_jitter(height = 0.4, alpha = 0.5, size = 1.5) +
+    # width = 0: only jitter vertically (for visual separation). x is the
+    # real Gini value -- jittering it horizontally (the geom_jitter default)
+    # would shift points outside [0, 1] and have them silently dropped by
+    # the scale_x_continuous() limits below.
+    ggplot2::geom_jitter(width = 0, height = 0.4, alpha = 0.5, size = 1.5) +
     ggplot2::geom_vline(data = orig_lines, ggplot2::aes(xintercept = orig_gini),
                          colour = "black", linetype = "solid", linewidth = 1) +
     ggplot2::geom_vline(data = iqr_per_method, ggplot2::aes(xintercept = iqr_low),
@@ -537,8 +578,12 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
                         size = 2.5, colour = "gray40", lineheight = 0.9) +
     ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
     ggplot2::facet_wrap(~ Method, ncol = 2) +
-    ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.1)) +
-    ggplot2::scale_y_continuous(limits = c(-0.5, 0.5), breaks = NULL) +
+    ggplot2::scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+    ggplot2::scale_y_continuous(breaks = NULL) +
+    # coord_cartesian() zooms the displayed window without dropping any
+    # data point that happens to fall outside it (unlike limits= inside
+    # scale_x/y_continuous, which is destructive and silently removes rows).
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(-0.5, 0.5)) +
     ggplot2::theme_minimal() +
     ggplot2::theme(
       strip.text         = ggplot2::element_text(size = 10, face = "bold"),
@@ -671,7 +716,7 @@ plot_bias_wealth_density <- function(bias_result,
   long$direction <- factor(long$direction, levels = c("Lump", "Split"))
 
   graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = "",
+    all       = " (all graves)",
     adults    = " (adults only)",
     subadults = " (subadults only)"
   )
@@ -681,7 +726,8 @@ plot_bias_wealth_density <- function(bias_result,
   if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
 
   p <- ggplot2::ggplot(long, ggplot2::aes(x = value, group = sim_id, colour = direction)) +
-    ggplot2::stat_density(geom = "line", alpha = alpha, linewidth = 0.4) +
+    ggplot2::stat_density(geom = "line", position = "identity",
+                            alpha = alpha, linewidth = 0.4) +
     ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
     ggplot2::guides(colour = ggplot2::guide_legend(
       override.aes = list(linewidth = 3, alpha = 1)
@@ -697,7 +743,7 @@ plot_bias_wealth_density <- function(bias_result,
   if (has_orig) {
     p <- p + ggplot2::stat_density(
       data = orig_long, ggplot2::aes(x = value), inherit.aes = FALSE,
-      geom = "line", colour = "black", linewidth = 1
+      geom = "line", position = "identity", colour = "black", linewidth = 1
     ) +
       ggplot2::labs(subtitle = "Black line = observed (original) distribution")
   }
@@ -818,7 +864,7 @@ plot_bias_wealth_lorenz <- function(bias_result,
   long$direction <- factor(long$direction, levels = c("Lump", "Split"))
 
   graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = "",
+    all       = " (all graves)",
     adults    = " (adults only)",
     subadults = " (subadults only)"
   )

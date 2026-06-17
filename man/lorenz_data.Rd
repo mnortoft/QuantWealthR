@@ -4,10 +4,14 @@
 \alias{lorenz_data}
 \title{Prepare Lorenz curve data for plotting}
 \usage{
-lorenz_data(prestige_df)
+lorenz_data(prestige_df, graves = c("adults", "all", "subadults"))
 }
 \arguments{
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
+
+\item{graves}{Which graves to use: \code{"adults"} (default, matching prior
+behaviour), \code{"all"}, or \code{"subadults"}. Ignored if \code{prestige_df} has no
+\code{is_adult_grave} column (age separation was not used).}
 }
 \value{
 A data frame with columns \code{cum_pop} (0-1), \code{cum_wealth} (0-1),

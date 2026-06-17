@@ -63,8 +63,13 @@ get_TOT_means <- function(tot_range) {
 #' Compute Bayesian (empirical prior) prestige estimates per type
 #'
 #' For types with n >= 2 occurrences, fits a Gamma prior using method of
-#' moments from the type's own TOT distribution (local empirical prior).
-#' For unique types (n = 1) a weak non-informative prior is used, and the
+#' moments from the type's own TOT distribution (local empirical prior). If
+#' every observed TOT value for a type happens to be identical (sample
+#' variance of 0), a fixed variance floor of 0.1 is substituted to keep the
+#' method-of-moments calculation defined; this is an intentional design
+#' choice that can narrow the credible interval for small, coincidentally
+#' uniform samples (see inline comments in the source for details). For
+#' unique types (n = 1) a weak non-informative prior is used, and the
 #' credible interval is narrowed proportionally to the total sample size.
 #'
 #' @param tot_range Output from [get_TOT_range()].
@@ -106,6 +111,16 @@ bayesian_prestige <- function(tot_range) {
     if (n >= 2) {
       M  <- observed_mean
       V  <- var(y)
+      # Zero-variance floor: if every observed TOT value for this type
+      # happens to be identical, the method-of-moments prior would divide
+      # by zero. Substituting a fixed V = 0.1 here is a deliberate, if
+      # somewhat arbitrary, design choice to keep the calculation defined --
+      # it does not bias the posterior *mean* (which still converges exactly
+      # to the shared value), but it does control how wide the resulting
+      # credible interval is. For very small n (e.g. 2-3 coincidentally
+      # identical observations) this floor can make the interval narrower,
+      # and the estimate look more precise, than the small sample size
+      # really justifies.
       if (V == 0) V <- 0.1
       alpha0 <- M^2 / V
       beta0  <- M / V
@@ -171,7 +186,7 @@ apply_prestige_mean <- function(means_df, df) {
     if (!nm %in% names(out)) next
     out[[nm]] <- ifelse(!is.na(df[[nm]]) & df[[nm]] > 0, values[[nm]], 0)
   }
-  out[is.na(out)] <- 0
+  out[, -1][is.na(out[, -1])] <- 0
   out$prestige_total <- round(rowSums(out[, -1, drop = FALSE], na.rm = TRUE), 2) + 1
   out
 }
@@ -193,7 +208,7 @@ apply_prestige_bayesian <- function(bayes_df, df) {
     val <- round(bayes_df$bayes_est[bayes_df$Type == nm], 2)
     out[[nm]] <- ifelse(!is.na(df[[nm]]) & df[[nm]] > 0, val, 0)
   }
-  out[is.na(out)] <- 0
+  out[, -1][is.na(out[, -1])] <- 0
   out$prestige_total <- round(rowSums(out[, -1, drop = FALSE], na.rm = TRUE), 2) + 1
   out
 }
@@ -228,7 +243,12 @@ sqrt_count_bonus <- function(df, count_cols = NULL) {
 #' If `adult_count` / `subadult_count` columns are present and `use_age_sep`
 #' is TRUE, prestige weights are estimated from adult graves only, and
 #' `combined_total` is divided by the number of adults (or subadults for
-#' subadult-only graves) to give per-capita wealth.
+#' subadult-only graves) to give per-capita wealth. A grave with no age
+#' information recorded at all (`adult_count == 0` and `subadult_count == 0`)
+#' is, by default, classified as an adult grave and treated as containing
+#' exactly one adult for per-capita division -- this is a deliberate
+#' modelling assumption, not a missing-data error, and a `warning()` is
+#' issued whenever it is applied so it isn't silent.
 #'
 #' @param df Data frame. First column = unit ID; subsequent columns = numeric
 #'   counts.  May include optional metadata columns: `adult_count`,
@@ -259,6 +279,16 @@ calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
   has_sub     <- "subadult_count" %in% col_names_lower
   use_age_sep <- use_age_sep && (has_adult || has_sub)
 
+  if (!has_adult && !has_sub) {
+    warning("No `adult_count` / `subadult_count` columns found in `df`. Running ",
+            "calculate_prestige() without age separation: prestige weights are ",
+            "estimated from all graves combined and wealth scores are not divided ",
+            "per capita. If your sample mixes adult and subadult (child) graves, ",
+            "their typically different grave-good assemblages may bias the ",
+            "resulting prestige estimates -- add age columns if that data is ",
+            "available.")
+  }
+
   # Identify count columns
   count_cols <- identify_count_columns(df)
   if (length(count_cols) == 0) stop("No numeric count columns found in `df`.")
@@ -270,26 +300,56 @@ calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
 
   df_counts <- df[, c(names(df)[1], count_cols), drop = FALSE]
 
+  if (anyNA(df_counts[[1]])) {
+    stop("The first column of `df` (the unit/grave ID) contains missing ",
+         "values. Every row must have a non-missing ID before running ",
+         "calculate_prestige() -- fix or remove those rows in your input ",
+         "data first.")
+  }
+
   # Age separation
   if (use_age_sep) {
     adult_col <- names(df)[col_names_lower == "adult_count"][1]
     sub_col   <- names(df)[col_names_lower == "subadult_count"]
     sub_col   <- if (length(sub_col) > 0) sub_col[1] else NULL
 
-    adult_counts   <- as.numeric(df[[adult_col]])
-    adult_counts[is.na(adult_counts)] <- 0
+    # `adult_col` is NA when adult_count is absent (only subadult_count is
+    # present) -- guard against indexing df[[NA]], which errors.
+    adult_counts <- if (!is.na(adult_col)) {
+      v <- as.numeric(df[[adult_col]])
+      v[is.na(v)] <- 0
+      v
+    } else rep(0, nrow(df))
     subadult_counts <- if (!is.null(sub_col)) {
       sc <- as.numeric(df[[sub_col]])
       sc[is.na(sc)] <- 0
       sc
     } else rep(0, nrow(df))
 
+    # Graves with no age information at all (adult_count == 0 and
+    # subadult_count == 0) default to "adult" for per-capita purposes. This
+    # is a deliberate modelling choice, not a data error -- flag it so the
+    # user is aware it happened.
     is_adult_grave   <- adult_counts >= 1 | (adult_counts == 0 & subadult_counts == 0)
     is_subadult_only <- adult_counts == 0 & subadult_counts >= 1
 
-    # TOT range for adults only
+    n_unknown_age <- sum(adult_counts == 0 & subadult_counts == 0)
+    if (n_unknown_age > 0) {
+      warning(sprintf(
+        "%d grave(s) have no recorded adult_count or subadult_count and are being assumed to be adult graves (1 adult each) for prestige estimation and per-capita division.",
+        n_unknown_age
+      ))
+    }
+    if (sum(is_adult_grave) == 0) {
+      warning("No graves were classified as adult graves -- every grave in ",
+              "this dataset has subadult_count >= 1 and adult_count == 0. ",
+              "Prestige weights will be estimated from subadult-only graves ",
+              "instead.")
+    }
+
+    # TOT range for adults only (NULL, not a crash, if there are none)
     df_adults  <- df_counts[is_adult_grave, , drop = FALSE]
-    tot_adults <- get_TOT_range(df_adults)
+    tot_adults <- if (nrow(df_adults) > 0) get_TOT_range(df_adults) else NULL
 
     # TOT range for subadult-exclusive types
     df_subs <- df_counts[is_subadult_only, , drop = FALSE]
@@ -303,16 +363,29 @@ calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
       } else NULL
     } else NULL
 
-    # Prestige weights
+    # Prestige weights -- tot_adults and/or tot_subs may legitimately be
+    # NULL (e.g. an all-subadult sample has no adult graves at all), so
+    # build up bayes_df/means_df from whichever pieces actually exist
+    # instead of assuming tot_adults is always usable.
     if (method == "bayesian") {
-      bayes_df <- bayesian_prestige(tot_adults)
-      if (!is.null(tot_subs) && nrow(tot_subs) > 0)
-        bayes_df <- rbind(bayes_df, bayesian_prestige(tot_subs))
+      bayes_df <- if (!is.null(tot_adults) && nrow(tot_adults) > 0)
+        bayesian_prestige(tot_adults) else NULL
+      if (!is.null(tot_subs) && nrow(tot_subs) > 0) {
+        subs_bayes <- bayesian_prestige(tot_subs)
+        bayes_df <- if (!is.null(bayes_df)) rbind(bayes_df, subs_bayes) else subs_bayes
+      }
+      if (is.null(bayes_df))
+        stop("No usable grave-good data found for either adult or subadult graves.")
       out <- apply_prestige_bayesian(bayes_df, df_counts)
     } else {
-      means_df <- get_TOT_means(tot_adults)
-      if (!is.null(tot_subs) && nrow(tot_subs) > 0)
-        means_df <- rbind(means_df, get_TOT_means(tot_subs))
+      means_df <- if (!is.null(tot_adults) && nrow(tot_adults) > 0)
+        get_TOT_means(tot_adults) else NULL
+      if (!is.null(tot_subs) && nrow(tot_subs) > 0) {
+        subs_means <- get_TOT_means(tot_subs)
+        means_df <- if (!is.null(means_df)) rbind(means_df, subs_means) else subs_means
+      }
+      if (is.null(means_df))
+        stop("No usable grave-good data found for either adult or subadult graves.")
       out <- apply_prestige_mean(means_df, df_counts)
     }
 
@@ -342,16 +415,18 @@ calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
       unique(tot_subs$Type) else character(0)
 
     # Plot TOT range: adult types from adult graves + subadult-exclusive from sub graves
-    plot_tot_range <- if (!is.null(tot_subs) && nrow(tot_subs) > 0)
-      rbind(tot_adults, tot_subs) else tot_adults
+    plot_tot_range <- if (!is.null(tot_adults) && !is.null(tot_subs) && nrow(tot_subs) > 0) {
+      rbind(tot_adults, tot_subs)
+    } else if (!is.null(tot_subs) && nrow(tot_subs) > 0) {
+      tot_subs
+    } else {
+      tot_adults
+    }
 
+    # Reuse the already-computed bayes_df/means_df rather than recomputing
+    # them from tot_adults/tot_subs a second time.
     plot_bayes <- if (method == "bayesian") bayes_df else NULL
-    plot_means <- if (method == "mean")    {
-      m <- get_TOT_means(tot_adults)
-      if (!is.null(tot_subs) && nrow(tot_subs) > 0)
-        m <- rbind(m, get_TOT_means(tot_subs))
-      m
-    } else NULL
+    plot_means <- if (method == "mean")     means_df else NULL
 
   } else {
     # No age separation
@@ -360,6 +435,8 @@ calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
       bayes_df <- bayesian_prestige(tot_range)
       out      <- apply_prestige_bayesian(bayes_df, df_counts)
     } else {
+      means_df <- get_TOT_means(tot_range)
+      out      <- apply_prestige_mean(means_df, df_counts)
     }
     bonus <- sqrt_count_bonus(df_counts, count_cols)
     out$combined_total <- out$prestige_total + bonus

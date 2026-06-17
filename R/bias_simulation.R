@@ -21,9 +21,22 @@
 #'
 #' @param df Data frame. First column = unit ID; remaining columns = numeric
 #'   counts (after [read_qw_data()] or equivalent).
+#' @param prestige_result Optional. The data frame returned by
+#'   [calculate_prestige()] for this same dataset (run before any grave
+#'   filtering). When supplied, the observed (non-simulated) prestige score
+#'   used for `orig_gini_prestige`, `orig_gini_prestige_sqrt`,
+#'   `orig_mean_prestige`, `orig_mean_prestige_sqrt`, and
+#'   `wealth_scores$orig` is taken directly from `calculate_prestige()`'s
+#'   `prestige_total` / `combined_total` columns (matched by ID). If
+#'   omitted, these values fall back to a simplified internal approximation
+#'   and a warning is issued, since that approximation will not match
+#'   [calculate_prestige()]'s output.
 #' @param graves Which graves to use: `"adults"` (default, matching the app),
-#'   `"subadults"`, or `"all"`.  Requires `adult_count` / `subadult_count`
-#'   columns for filtering; ignored if those columns are absent.
+#'   `"subadults"`, or `"all"`. `graves = "adults"` without an `adult_count`
+#'   column falls back to `"all"` with a warning (rather than silently
+#'   matching every row). `graves = "subadults"` without a `subadult_count`
+#'   column raises an error, since there is no sensible "subadults" subset
+#'   to fall back to.
 #' @param n_sims Integer. Number of Monte Carlo iterations (default 100).
 #' @param base_max_split Integer. Maximum split count before adaptive
 #'   reduction (default 5).
@@ -35,7 +48,9 @@
 #'     `ginis_split_prestige_sqrt`, `ginis_lump_prestige_sqrt`: numeric vectors
 #'     of length `n_sims`.
 #'   - `orig_gini_TOT`, `orig_gini_TOT_sqrt`, `orig_gini_prestige`,
-#'     `orig_gini_prestige_sqrt`: observed Gini values.
+#'     `orig_gini_prestige_sqrt`: observed Gini values (the two `prestige`
+#'     values use `calculate_prestige()` output when `prestige_result` is
+#'     supplied).
 #'   - `means_split_*`, `means_lump_*`, `orig_mean_*`: mean wealth per
 #'     simulation (for absolute Gini = G x mean).
 #'   - `total_splits`, `total_lumped_cols`: integer vectors (length `n_sims`)
@@ -45,16 +60,21 @@
 #'   - `graves_used`: which graves were included (`"adults"`, `"subadults"`,
 #'     or `"all"`).
 #'   - `wealth_scores` (only when `store_wealth = TRUE`): a list with `split`
-#'     and `lump`, each a list of `n_sims` data frames (columns: `grave_id`,
-#'     `TOT`, `TOT_sqrt`, `prestige`, `prestige_sqrt`).
+#'     and `lump` (each a list of `n_sims` data frames with columns
+#'     `grave_id`, `TOT`, `TOT_sqrt`, `prestige`, `prestige_sqrt`), plus
+#'     `orig`, a single data frame with the same columns for the observed
+#'     (non-simulated) distribution. `orig$prestige` / `orig$prestige_sqrt`
+#'     come from `calculate_prestige()` when `prestige_result` is supplied.
 #' @export
 #' @examples
 #' \dontrun{
-#' df  <- read_qw_data("my_graves.csv")
-#' res <- simulate_category_bias(df, n_sims = 100)
+#' df    <- read_qw_data("my_graves.csv")
+#' pres  <- calculate_prestige(df)
+#' res   <- simulate_category_bias(df, pres, n_sims = 100)
 #' plot_bias(res, case = "Baden", dates = "3360-2890 BCE")
 #' }
 simulate_category_bias <- function(df,
+                                    prestige_result = NULL,
                                     graves        = c("adults", "all", "subadults"),
                                     n_sims        = 100,
                                     base_max_split = 5,
@@ -67,11 +87,24 @@ simulate_category_bias <- function(df,
   has_adult   <- "adult_count"    %in% col_names_lower
   has_sub     <- "subadult_count" %in% col_names_lower
 
+  if (graves == "subadults" && !has_sub) {
+    stop("graves = \"subadults\" was requested, but no `subadult_count` ",
+         "column was found in `df`. Add a `subadult_count` column, or use ",
+         "graves = \"all\" / \"adults\" instead.")
+  }
+
+  if (graves == "adults" && !has_adult) {
+    warning("graves = \"adults\" was requested, but no `adult_count` column ",
+            "was found in `df`. Falling back to graves = \"all\" (no age ",
+            "filtering or per-capita division will be applied).")
+    graves <- "all"
+  }
+
   if ((has_adult || has_sub) && graves != "all") {
     ac <- if (has_adult) {
       v <- as.numeric(df[[names(df)[col_names_lower == "adult_count"][1]]])
       v[is.na(v)] <- 0; v
-    } else rep(1L, nrow(df))
+    } else rep(0L, nrow(df))   # graves == "subadults" here; no adult_count present
 
     sc <- if (has_sub) {
       v <- as.numeric(df[[names(df)[col_names_lower == "subadult_count"][1]]])
@@ -81,10 +114,26 @@ simulate_category_bias <- function(df,
     is_adult_grave   <- ac >= 1 | (ac == 0 & sc == 0)
     is_subadult_only <- ac == 0 & sc >= 1
 
+    n_unknown_age <- sum(ac == 0 & sc == 0)
+    if (n_unknown_age > 0) {
+      warning(sprintf(
+        "%d grave(s) have no recorded adult_count or subadult_count and are being treated as adult graves by default.",
+        n_unknown_age
+      ))
+    }
+
     df <- switch(graves,
       adults    = df[is_adult_grave,   , drop = FALSE],
       subadults = df[is_subadult_only, , drop = FALSE]
     )
+
+    if (nrow(df) == 0) {
+      stop(sprintf(
+        "No graves remain after filtering to graves = \"%s\". Check that your data actually contains graves matching that category.",
+        graves
+      ))
+    }
+
     # Pass adult_counts vector for per-capita if using adults
     adult_counts_vec <- if (graves == "adults") ac[is_adult_grave] else NULL
   } else {
@@ -166,15 +215,35 @@ simulate_category_bias <- function(df,
     orig_prestige    <- orig_prestige   / ac_safe
   }
 
-  orig_gini_TOT           <- DescTools::Gini(orig_TOT + 1,                           unbiased = TRUE)
-  orig_gini_TOT_sqrt      <- DescTools::Gini(orig_TOT + 1 + orig_sqrt_bonus,         unbiased = TRUE)
-  orig_gini_prestige      <- DescTools::Gini(orig_prestige + 1,                      unbiased = TRUE)
-  orig_gini_prestige_sqrt <- DescTools::Gini(orig_prestige + 1 + orig_sqrt_bonus,    unbiased = TRUE)
+  # ---- Optional: use calculate_prestige() output for the observed prestige score --
+  if (!is.null(prestige_result)) {
+    pr_ids    <- as.character(prestige_result[[1]])
+    match_idx <- match(grave_ids, pr_ids)
+    if (anyNA(match_idx)) {
+      warning(sum(is.na(match_idx)), " grave(s) in `df` have no matching ID in ",
+              "`prestige_result`; their original prestige score will be NA.")
+    }
+    orig_prestige_final      <- prestige_result$prestige_total[match_idx]
+    orig_prestige_sqrt_final <- prestige_result$combined_total[match_idx]
+  } else {
+    warning("`prestige_result` not supplied: the observed/original prestige score is ",
+            "approximated internally rather than taken from calculate_prestige(). ",
+            "Pass the result of calculate_prestige(df) as the second argument, e.g. ",
+            "simulate_category_bias(df, calculate_prestige(df), ...), to use the ",
+            "package's actual prestige estimate for the original distribution.")
+    orig_prestige_final      <- orig_prestige + 1
+    orig_prestige_sqrt_final <- orig_prestige + 1 + orig_sqrt_bonus
+  }
+
+  orig_gini_TOT           <- DescTools::Gini(orig_TOT + 1,                   unbiased = TRUE)
+  orig_gini_TOT_sqrt      <- DescTools::Gini(orig_TOT + 1 + orig_sqrt_bonus, unbiased = TRUE)
+  orig_gini_prestige      <- DescTools::Gini(orig_prestige_final,            unbiased = TRUE)
+  orig_gini_prestige_sqrt <- DescTools::Gini(orig_prestige_sqrt_final,       unbiased = TRUE)
 
   orig_mean_TOT           <- mean(orig_TOT + 1)
   orig_mean_TOT_sqrt      <- mean(orig_TOT + 1 + orig_sqrt_bonus)
-  orig_mean_prestige      <- mean(orig_prestige + 1)
-  orig_mean_prestige_sqrt <- mean(orig_prestige + 1 + orig_sqrt_bonus)
+  orig_mean_prestige      <- mean(orig_prestige_final)
+  orig_mean_prestige_sqrt <- mean(orig_prestige_sqrt_final)
 
   # ---- Pre-allocate results ------------------------------------------------
   mk <- function() numeric(n_sims)
@@ -354,7 +423,15 @@ simulate_category_bias <- function(df,
     graves_used     = graves_used
   )
   if (store_wealth) {
-    result$wealth_scores <- list(split = wealth_split_list, lump = wealth_lump_list)
+    wealth_orig <- data.frame(
+      grave_id      = grave_ids,
+      TOT           = orig_TOT + 1,
+      TOT_sqrt      = orig_TOT + 1 + orig_sqrt_bonus,
+      prestige      = orig_prestige_final,
+      prestige_sqrt = orig_prestige_sqrt_final
+    )
+    result$wealth_scores <- list(split = wealth_split_list, lump = wealth_lump_list,
+                                  orig = wealth_orig)
   }
   result
 }
