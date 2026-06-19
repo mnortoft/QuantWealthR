@@ -126,4 +126,47 @@ read_count_data <- function(filepath) {
 #' @export
 #' @examples
 #' \dontrun{
-#' houses
+#' houses <- read_physical_data("my_houses.csv")
+#' physical_measure_summary(houses$area_m2)
+#' }
+read_physical_data <- function(filepath) {
+  ext <- tolower(tools::file_ext(filepath))
+  if (ext %in% c("xlsx", "xls")) {
+    if (!requireNamespace("readxl", quietly = TRUE))
+      stop("Package 'readxl' is required to read Excel files.")
+    df <- as.data.frame(readxl::read_excel(filepath))
+  } else {
+    sep <- .auto_detect_sep(filepath)
+    df  <- read.csv(filepath, sep = sep, stringsAsFactors = FALSE)
+  }
+  df
+}
+
+
+.auto_detect_sep <- function(filepath) {
+  lines <- readLines(filepath, n = 5, warn = FALSE)
+  if (length(lines) == 0) return(";")
+  seps   <- c(";", ",", "\t")
+  counts <- sapply(seps, function(s) {
+    median(sapply(lines, function(l)
+      length(gregexpr(s, l, fixed = TRUE)[[1]])), na.rm = TRUE)
+  })
+  counts[is.na(counts)] <- 0
+  if (max(counts) == 0) return(";")
+  seps[which.max(counts)]
+}
+
+
+#' Path to the bundled example dataset
+#'
+#' Returns the file path to the example CSV included with the package.
+#' Use with [read_count_data()] to load it.
+#'
+#' @return A character string file path.
+#' @examples
+#' path <- example_data_path()
+#' df <- read_count_data(path)
+#' @export
+example_data_path <- function() {
+  system.file("extdata", "quantwealth_example.csv", package = "QuantWealthR")
+}
