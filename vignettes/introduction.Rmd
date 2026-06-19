@@ -41,7 +41,7 @@ Your CSV or Excel file should have:
 - **Optional**: `adult_count` and `subadult_count` columns for age-separated analysis
 - **Optional**: `lat` and `lng` columns (ignored by analysis, preserved in output)
 
-Absent artefacts should be `0` or left blank (NA). `read_qw_data()` converts zeros to NA automatically.
+Absent artefacts should be `0` or left blank (NA). `read_count_data()` converts zeros to NA automatically.
 
 ```
 grave_id | sword | shield | bronze | adult_count | subadult_count
@@ -74,10 +74,10 @@ H003     |   120.0
 library(QuantWealthR)
 
 # From a CSV file (separator auto-detected)
-df <- read_qw_data("my_graves.csv")
+df <- read_count_data("my_graves.csv")
 
 # Or from Excel
-df <- read_qw_data("my_graves.xlsx")
+df <- read_count_data("my_graves.xlsx")
 
 # Or pass a data frame you already have in R
 # (just make sure 0s are NA for absent types)
@@ -89,7 +89,7 @@ For this vignette we use the bundled example dataset — 15 fictional graves wit
 library(QuantWealthR)
 
 # Load the bundled example data
-df <- read_qw_data(example_data_path())
+df <- read_count_data(example_data_path())
 
 head(df)
 ```
@@ -289,9 +289,14 @@ plot_physical_decile(areas,
 When your dataset has multiple phases, periods, or sites, use `qw_pipeline()` to run everything at once.
 
 ```{r pipeline}
-# Split the example graves into three fictitious phases for demonstration
+# Split the example graves into three fictitious phases for demonstration.
+# Make `phase` an ordered factor so phases stay chronological (Early, Middle,
+# Late) rather than being sorted alphabetically.
 df_multi <- df
-df_multi$phase <- rep(c("Early", "Middle", "Late"), length.out = nrow(df_multi))
+df_multi$phase <- factor(
+  rep(c("Early", "Middle", "Late"), length.out = nrow(df_multi)),
+  levels = c("Early", "Middle", "Late")
+)
 
 result <- qw_pipeline(df_multi,
                        group_col = "phase",
@@ -305,9 +310,11 @@ cases_summary(result)
 ### Comparison plots
 
 ```{r gini_comparison}
-plot_gini_comparison(result,
-                     measure  = "combined",   # or "prestige" / "tot"
-                     order_by = "gini")       # or "case" for original order
+# Cases appear in the factor order of `phase` (Early, Middle, Late).
+plot_gini_comparison(result, measure = "combined")   # or "prestige" / "tot"
+
+# To set a custom order without editing the data, pass `case_order`:
+plot_gini_comparison(result, case_order = c("Late", "Middle", "Early"))
 ```
 
 ```{r lorenz_comparison}
@@ -319,7 +326,8 @@ plot_lorenz_comparison(result)
 
 ```{r physical_pipeline}
 houses <- data.frame(
-  phase   = rep(c("Phase 1", "Phase 2", "Phase 3"), each = 20),
+  phase   = factor(rep(c("Phase 1", "Phase 2", "Phase 3"), each = 20),
+                   levels = c("Phase 1", "Phase 2", "Phase 3")),
   house   = paste0("H", 1:60),
   area_m2 = c(rlnorm(20, 4.0, 0.5),
                rlnorm(20, 4.5, 0.6),
@@ -375,8 +383,8 @@ format_dates(800, 1200)     # "800 - 1200 CE"
 identify_count_columns(df)
 
 # Read CSV or Excel automatically
-df <- read_qw_data("my_data.csv")
-df <- read_qw_data("my_data.xlsx")
+df <- read_count_data("my_data.csv")
+df <- read_count_data("my_data.xlsx")
 ```
 
 ---
@@ -390,13 +398,4 @@ set.seed(42)
 bias <- simulate_category_bias(df, n_sims = 200)
 
 set.seed(42)
-ineq <- inequality_summary(pres, n_boot = 500)
-```
-
-The **prestige values** (`calculate_prestige()`) and **observed Gini** (`orig_gini_*` in bias results) are fully deterministic — no seed needed.
-
----
-
-## Citation
-
-> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. <https://doi.org/10.31235/osf.io/wzcqy_v2>
+ineq <- 

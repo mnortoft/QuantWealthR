@@ -11,9 +11,8 @@ A character string file path.
 }
 \description{
 Returns the file path to the example CSV included with the package.
-Use with \code{\link[=read_qw_data]{read_qw_data()}} to load it.
+Use with \code{\link[=read_count_data]{read_count_data()}} to load it.
 }
 \examples{
 path <- example_data_path()
-df <- read_qw_data(path)
-}
+df <- read_count_data

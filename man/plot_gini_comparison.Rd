@@ -7,7 +7,7 @@
 plot_gini_comparison(
   pipeline_result,
   measure = c("combined", "prestige", "tot"),
-  order_by = c("gini", "case"),
+  case_order = NULL,
   title = NULL,
   abs_gini = FALSE
 )
@@ -19,7 +19,11 @@ plot_gini_comparison(
 prestige + sqrt-count bonus), \code{"prestige"}, or \code{"tot"}.  Ignored for
 physical measure pipelines.}
 
-\item{order_by}{\code{"gini"} (default, ascending) or \code{"case"} (original order).}
+\item{case_order}{Optional character vector giving the left-to-right order
+of cases (e.g. \code{c("Early", "Middle", "Late")}).  If \code{NULL} (default),
+cases keep the order returned by \code{\link[=qw_pipeline]{qw_pipeline()}} -- the factor-level order
+of the grouping column, or its order of first appearance if not a factor.
+Cases omitted from \code{case_order} are appended at the end.}
 
 \item{title}{Optional plot title.}
 
@@ -30,13 +34,4 @@ wealth) as a secondary point in a different colour. Default FALSE.}
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
-Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and produces a point + error bar plot
-showing the Gini coefficient (with 80\% CI when available) for each case,
-ordered by Gini value.  Works for both count data and physical measure data.
-}
-\examples{
-\dontrun{
-result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
-plot_gini_comparison(result)
-}
-}
+Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and produces a 

@@ -11,7 +11,7 @@
 #' library(QuantWealthR)
 #'
 #' # 1. Load your data
-#' df <- read_qw_data("my_graves.csv")   # or pass a data frame directly
+#' df <- read_count_data("my_graves.csv")   # or pass a data frame directly
 #'
 #' # 2. Calculate prestige values
 #' pres <- calculate_prestige(df, method = "bayesian")
@@ -65,11 +65,12 @@
 #' | [plot_bias()] | Bias simulation (ggplot2) |
 #' | [plot_bias_wealth_density()] | Per-grave wealth density across simulations (ggplot2) |
 #'
-#' @seealso
-#' * QuantWealth web app: <https://quantwealth.eu>
-#' * Accompanying paper: <https://doi.org/10.31235/osf.io/wzcqy_v2>
+#' ## Tutorial vignette
 #'
-#' @keywords internal
-#' @importFrom stats median qgamma var
-#' @importFrom utils read.csv
-"_PACKAGE"
+#' A step-by-step introduction is available as a package vignette:
+#'
+#' ```
+#' vignette("introduction", package = "QuantWealthR")
+#' ```
+#'
+#' The vignette ships with the installed and CRAN versions of the

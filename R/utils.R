@@ -71,19 +71,22 @@ identify_count_columns <- function(df) {
 #' value for all four (a real coordinate near the equator/prime meridian, or
 #' a grave with zero adults/subadults rather than missing age data).
 #'
+#' For single-column physical measure data (e.g. house area), use
+#' [read_physical_data()] instead.
+#'
 #' @param filepath Path to a CSV (.csv) or Excel (.xlsx / .xls) file.
 #' @return A data frame with zeros converted to NA in numeric columns (except
 #'   `lat`, `lng`, `adult_count`, `subadult_count`).
 #' @export
 #' @examples
 #' # Load the bundled example dataset
-#' df <- read_qw_data(example_data_path())
+#' df <- read_count_data(example_data_path())
 #'
 #' \dontrun{
 #' # Or load your own file
-#' df <- read_qw_data("my_graves.csv")
+#' df <- read_count_data("my_graves.csv")
 #' }
-read_qw_data <- function(filepath) {
+read_count_data <- function(filepath) {
   ext <- tolower(tools::file_ext(filepath))
   if (ext %in% c("xlsx", "xls")) {
     if (!requireNamespace("readxl", quietly = TRUE))
@@ -108,30 +111,19 @@ read_qw_data <- function(filepath) {
 }
 
 
-.auto_detect_sep <- function(filepath) {
-  lines <- readLines(filepath, n = 5, warn = FALSE)
-  if (length(lines) == 0) return(";")
-  seps   <- c(";", ",", "\t")
-  counts <- sapply(seps, function(s) {
-    median(sapply(lines, function(l)
-      length(gregexpr(s, l, fixed = TRUE)[[1]])), na.rm = TRUE)
-  })
-  counts[is.na(counts)] <- 0
-  if (max(counts) == 0) return(";")
-  seps[which.max(counts)]
-}
-
-
-#' Path to the bundled example dataset
+#' Read a CSV or Excel file of physical measure data
 #'
-#' Returns the file path to the example CSV included with the package.
-#' Use with [read_qw_data()] to load it.
+#' Companion to [read_count_data()] for physical measures (e.g. house floor
+#' area, grave pit depth, mound volume). Unlike the count-data reader, this
+#' applies no zero-to-NA cleaning: the file is read as-is into a data frame.
+#' You choose which column to analyse later, at the inequality stage -- e.g.
+#' by passing `df$area_m2` to [physical_measure_summary()] or `measure_col`
+#' to [qw_pipeline()].
 #'
-#' @return A character string file path.
-#' @examples
-#' path <- example_data_path()
-#' df <- read_qw_data(path)
+#' @param filepath Path to a CSV (.csv) or Excel (.xlsx / .xls) file.
+#' @return A data frame containing the file's contents, unmodified (the CSV
+#'   separator is auto-detected).
 #' @export
-example_data_path <- function() {
-  system.file("extdata", "quantwealth_example.csv", package = "QuantWealthR")
-}
+#' @examples
+#' \dontrun{
+#' houses

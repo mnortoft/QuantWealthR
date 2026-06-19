@@ -20,7 +20,7 @@
 #' Prestige+1+sqrt-count -- for both split and lump scenarios.
 #'
 #' @param df Data frame. First column = unit ID; remaining columns = numeric
-#'   counts (after [read_qw_data()] or equivalent).
+#'   counts (after [read_count_data()] or equivalent).
 #' @param prestige_result Optional. The data frame returned by
 #'   [calculate_prestige()] for this same dataset (run before any grave
 #'   filtering). When supplied, the observed (non-simulated) prestige score
@@ -68,7 +68,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' df    <- read_qw_data("my_graves.csv")
+#' df    <- read_count_data("my_graves.csv")
 #' pres  <- calculate_prestige(df)
 #' res   <- simulate_category_bias(df, pres, n_sims = 100)
 #' plot_bias(res, case = "Baden", dates = "3360-2890 BCE")
@@ -514,5 +514,4 @@ simulate_category_bias <- function(df,
     }
     if (length(grp) > 1) { groups[[length(groups) + 1]] <- grp; assigned[i] <- TRUE }
   }
-  groups
-}
+  gro

@@ -231,6 +231,22 @@ decile_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
 }
 
 
+# Internal: drop NA / zero / negative measure values, emitting a message when
+# any are removed, so the user is told that observations were excluded from the
+# analysis. Shared by physical_measure_gini() and physical_measure_summary().
+.drop_invalid_sizes <- function(sizes, caller = "physical_measure") {
+  n_in  <- length(sizes)
+  sizes <- sizes[!is.na(sizes) & sizes > 0]
+  n_dropped <- n_in - length(sizes)
+  if (n_dropped > 0) {
+    message(sprintf(
+      "%s(): %d of %d values dropped (zero, negative, or NA) before analysis.",
+      caller, n_dropped, n_in))
+  }
+  sizes
+}
+
+
 #' Gini coefficient for physical measure data (e.g. house floor area)
 #'
 #' @param sizes Numeric vector of physical measure values (e.g. house areas
@@ -243,7 +259,7 @@ decile_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
 #' areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
 #' physical_measure_gini(areas)
 physical_measure_gini <- function(sizes, conf_level = 0.80, n_boot = 2000) {
-  sizes <- sizes[!is.na(sizes) & sizes > 0]
+  sizes <- .drop_invalid_sizes(sizes, "physical_measure_gini")
   if (length(sizes) < 2) stop("Need at least 2 valid (positive) observations.")
 
   if (!is.na(conf_level)) {
@@ -266,19 +282,4 @@ physical_measure_gini <- function(sizes, conf_level = 0.80, n_boot = 2000) {
 #' @return A list with gini, abs_gini, mean, median, min, max, n.
 #' @export
 #' @examples
-#' areas <- c(40, 55, 80, 120, 200, 350)
-#' physical_measure_summary(areas)
-physical_measure_summary <- function(sizes, conf_level = 0.80, n_boot = 2000) {
-  sizes <- sizes[!is.na(sizes) & sizes > 0]
-  if (length(sizes) < 2) stop("Need at least 2 valid (positive) observations.")
-  g <- physical_measure_gini(sizes, conf_level = conf_level, n_boot = n_boot)
-  list(
-    gini     = g,
-    abs_gini = round(g["gini"] * mean(sizes), 2),
-    mean     = round(mean(sizes), 3),
-    median   = round(median(sizes), 3),
-    min      = round(min(sizes), 3),
-    max      = round(max(sizes), 3),
-    n        = length(sizes)
-  )
-}
+#' areas <- c(40, 5

@@ -15,7 +15,7 @@ simulate_category_bias(
 }
 \arguments{
 \item{df}{Data frame. First column = unit ID; remaining columns = numeric
-counts (after \code{\link[=read_qw_data]{read_qw_data()}} or equivalent).}
+counts (after \code{\link[=read_count_data]{read_count_data()}} or equivalent).}
 
 \item{prestige_result}{Optional. The data frame returned by
 \code{\link[=calculate_prestige]{calculate_prestige()}} for this same dataset (run before any grave
@@ -89,9 +89,7 @@ Prestige+1+sqrt-count -- for both split and lump scenarios.
 }
 \examples{
 \dontrun{
-df    <- read_qw_data("my_graves.csv")
+df    <- read_count_data("my_graves.csv")
 pres  <- calculate_prestige(df)
 res   <- simulate_category_bias(df, pres, n_sims = 100)
-plot_bias(res, case = "Baden", dates = "3360-2890 BCE")
-}
-}
+plot_bias(res, case = "Baden", dates = "3360-2890 B

@@ -28,7 +28,10 @@ counts) \strong{or} a single numeric column for physical measures (set
 }}
 
 \item{group_col}{Character. Name of the column to group by (e.g.
-\code{"phase"}, \code{"period"}, \code{"site"}).}
+\code{"phase"}, \code{"period"}, \code{"site"}).  Make this column an ordered/explicit
+factor to control the order of groups in the output and plots (e.g.
+chronological phases); otherwise groups follow their order of first
+appearance in the data.}
 
 \item{id_col}{Character. Name of the unit ID column (e.g. \code{"grave_id"}).
 If NULL (default), the first non-group column is used as the ID.}
@@ -100,10 +103,4 @@ result$summary
 houses <- data.frame(
   phase   = rep(c("Phase 1", "Phase 2"), each = 20),
   house   = paste0("H", 1:40),
-  area_m2 = c(rlnorm(20, 4, 0.5), rlnorm(20, 4.5, 0.7))
-)
-result_phys <- qw_pipeline(houses, group_col = "phase", id_col = "house",
-                            data_type = "physical", measure_col = "area_m2")
-result_phys$summary
-}
-}
+  area_m2 = c(rlnorm(20, 4, 0.5), r

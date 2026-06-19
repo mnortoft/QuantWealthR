@@ -23,7 +23,10 @@
 #'     counts) **or** a single numeric column for physical measures (set
 #'     `data_type = "physical"`).
 #' @param group_col Character. Name of the column to group by (e.g.
-#'   `"phase"`, `"period"`, `"site"`).
+#'   `"phase"`, `"period"`, `"site"`).  Make this column an ordered/explicit
+#'   factor to control the order of groups in the output and plots (e.g.
+#'   chronological phases); otherwise groups follow their order of first
+#'   appearance in the data.
 #' @param id_col Character. Name of the unit ID column (e.g. `"grave_id"`).
 #'   If NULL (default), the first non-group column is used as the ID.
 #' @param data_type `"count"` (default) for grave goods / hoard / house
@@ -96,7 +99,14 @@ qw_pipeline <- function(df,
       stop(sprintf("Column '%s' not found in data frame.", measure_col))
   }
 
-  groups    <- unique(df[[group_col]])
+  # Preserve a meaningful group order: factor-level order when the grouping
+  # column is a factor (so chronological order can be set explicitly), else
+  # the order the groups first appear in the data.
+  groups    <- if (is.factor(df[[group_col]])) {
+    levels(droplevels(df[[group_col]]))
+  } else {
+    unique(df[[group_col]])
+  }
   by_group  <- list()
   rows_list <- list()
 
@@ -196,6 +206,7 @@ qw_pipeline <- function(df,
           n             = length(sizes),
           gini          = round(g["gini"], 3),
           gini_ci       = ci,
+          abs_gini      = round(unname(g["gini"]) * mean(sizes), 2),
           mean_measure  = round(mean(sizes), 3),
           median_measure = round(median(sizes), 3),
           min_measure   = round(min(sizes), 3),
@@ -217,24 +228,4 @@ qw_pipeline <- function(df,
   summary_df <- if (length(rows_list) > 0)
     do.call(rbind, rows_list) else data.frame()
 
-  list(summary = summary_df, by_group = by_group)
-}
-
-
-#' Print a formatted summary of qw_pipeline results
-#'
-#' @param pipeline_result Output from [qw_pipeline()].
-#' @param digits Number of decimal places (default 3).
-#' @export
-print_pipeline_summary <- function(pipeline_result, digits = 3) {
-  df <- pipeline_result$summary
-  if (nrow(df) == 0) {
-    message("No groups were successfully processed.")
-    return(invisible(NULL))
-  }
-  # Round numeric columns
-  num_cols <- sapply(df, is.numeric)
-  df[num_cols] <- lapply(df[num_cols], round, digits = digits)
-  print(df, row.names = FALSE)
-  invisible(df)
-}
+  list(summary = summary_df, by_gr

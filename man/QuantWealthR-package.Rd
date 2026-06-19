@@ -17,7 +17,7 @@ connection.
 \if{html}{\out{<div class="sourceCode">}}\preformatted{library(QuantWealthR)
 
 # 1. Load your data
-df <- read_qw_data("my_graves.csv")   # or pass a data frame directly
+df <- read_count_data("my_graves.csv")   # or pass a data frame directly
 
 # 2. Calculate prestige values
 pres <- calculate_prestige(df, method = "bayesian")
@@ -72,15 +72,12 @@ result$summary    # data frame with one row per phase
 }
 
 }
-}
-\seealso{
-\itemize{
-\item QuantWealth web app: \url{https://quantwealth.eu}
-\item Accompanying paper: \url{https://doi.org/10.31235/osf.io/wzcqy_v2}
-}
-}
-\author{
-\strong{Maintainer}: Mikkel Nørtoft \email{mattbeets@gmail.com}
 
-}
-\keyword{internal}
+\subsection{Tutorial vignette}{
+
+A step-by-step introduction is available as a package vignette:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{vignette("introduction", package = "QuantWealthR")
+}\if{html}{\out{</div>}}
+
+The vignette ship

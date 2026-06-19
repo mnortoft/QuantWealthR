@@ -4,7 +4,12 @@
 \alias{plot_lorenz_comparison}
 \title{Overlay Lorenz curves for multiple cases}
 \usage{
-plot_lorenz_comparison(pipeline_result, title = NULL, cases = NULL)
+plot_lorenz_comparison(
+  pipeline_result,
+  title = NULL,
+  cases = NULL,
+  case_order = NULL
+)
 }
 \arguments{
 \item{pipeline_result}{Output from \code{\link[=qw_pipeline]{qw_pipeline()}} with count data (must
@@ -13,17 +18,10 @@ have \verb{$by_group} entries containing \code{prestige_df}).}
 \item{title}{Optional plot title.}
 
 \item{cases}{Character vector of case names to include.  Default: all cases.}
+
+\item{case_order}{Optional character vector giving the order of cases in the
+legend (e.g. \code{c("Early", "Middle", "Late")}).  If \code{NULL} (default), the
+\code{\link[=qw_pipeline]{qw_pipeline()}} order is used.  Cases omitted are appended at the end.}
 }
 \value{
-A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
-}
-\description{
-Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and draws one Lorenz curve per case,
-coloured by case.
-}
-\examples{
-\dontrun{
-result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
-plot_lorenz_comparison(result)
-}
-}
+A \link[ggplot2:gg

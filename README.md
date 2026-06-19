@@ -46,10 +46,10 @@ Both types can be processed in bulk across multiple periods or sites using `qw_p
 library(QuantWealthR)
 
 # Load your data — first column = unit ID, rest = counts
-df <- read_qw_data("my_graves.csv")   # or read.csv() / readxl::read_excel()
+df <- read_count_data("my_graves.csv")   # or read.csv() / readxl::read_excel()
 
 # Or try the bundled example dataset
-df <- read_qw_data(example_data_path())
+df <- read_count_data(example_data_path())
 
 # Step 1: Calculate prestige values
 pres <- calculate_prestige(df, method = "bayesian")
@@ -149,7 +149,8 @@ First column = unit ID, second column = the measure value.
 ### Data utilities
 | Function | Description |
 |----------|-------------|
-| `read_qw_data(filepath)` | Read CSV or Excel, auto-detect separator, convert 0→NA |
+| `read_count_data(filepath)` | Read count data (CSV/Excel), auto-detect separator, convert 0→NA |
+| `read_physical_data(filepath)` | Read physical-measure data as-is (no zero cleaning) |
 | `identify_count_columns(df)` | Detect which columns are count data |
 | `format_dates(start, end)` | Format BCE/CE date ranges as strings |
 
@@ -193,8 +194,8 @@ First column = unit ID, second column = the measure value.
 | `qw_pipeline(df, group_col, id_col, data_type, method, run_bias_sim)` | Batch analysis across groups |
 | `cases_summary(pipeline_result)` | Formatted summary table |
 | `print_pipeline_summary(pipeline_result)` | Print to console |
-| `plot_gini_comparison(pipeline_result, measure, order_by)` | Point + CI plot comparing Gini across cases |
-| `plot_lorenz_comparison(pipeline_result, cases)` | Overlaid Lorenz curves per case |
+| `plot_gini_comparison(pipeline_result, measure, case_order)` | Point + CI plot comparing Gini across cases (cases on x-axis) |
+| `plot_lorenz_comparison(pipeline_result, cases, case_order)` | Overlaid Lorenz curves per case |
 
 ---
 
@@ -235,9 +236,4 @@ If you use QuantWealthR in published research, please cite the accompanying pape
 
 > Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. https://doi.org/10.31235/osf.io/wzcqy_v2
 
----
-
-## See also
-
-- [QuantWealth online app](https://quantwealth.eu)
-- [QuantWealth documentation](https://quantwealth.eu/documentation.html)
+--

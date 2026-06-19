@@ -639,7 +639,7 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 #' @export
 #' @examples
 #' \dontrun{
-#' df    <- read_qw_data(example_data_path())
+#' df    <- read_count_data(example_data_path())
 #' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 #' plot_bias_wealth_density(bias_w)
 #' plot_bias_wealth_density(bias_w, measure = "combined")
@@ -794,7 +794,7 @@ plot_bias_wealth_density <- function(bias_result,
 #' @export
 #' @examples
 #' \dontrun{
-#' df    <- read_qw_data(example_data_path())
+#' df    <- read_count_data(example_data_path())
 #' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 #' plot_bias_wealth_lorenz(bias_w)
 #' plot_bias_wealth_lorenz(bias_w, measure = "combined")
@@ -1003,5 +1003,4 @@ plot_physical_decile <- function(sizes, data_type = "Physical measure",
                    panel.grid.major.x = ggplot2::element_blank(),
                    panel.grid.minor.x = ggplot2::element_blank()) +
     ggplot2::labs(title = "Decile distribution", x = NULL,
-                  y = "Proportion of total", fill = "Decile")
-}
+                  y = "Proportion of total", fill = "Decil
