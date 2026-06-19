@@ -73,4 +73,19 @@
 #' vignette("introduction", package = "QuantWealthR")
 #' ```
 #'
-#' The vignette ships with the installed and CRAN versions of the
+#' The vignette ships with the installed and CRAN versions of the package. If
+#' you installed from source and it is missing, rebuild and install it with:
+#'
+#' ```
+#' devtools::install(build_vignettes = TRUE)
+#' browseVignettes("QuantWealthR")
+#' ```
+#'
+#' @seealso
+#' * QuantWealth web app: <https://quantwealth.eu>
+#' * Accompanying paper: <https://doi.org/10.31235/osf.io/wzcqy_v2>
+#'
+#' @keywords internal
+#' @importFrom stats median qgamma var
+#' @importFrom utils read.csv
+"_PACKAGE"

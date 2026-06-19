@@ -65,3 +65,4 @@ bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
 plot_bias_wealth_lorenz(bias_w)
 plot_bias_wealth_lorenz(bias_w, measure = "combined")
 }
+}

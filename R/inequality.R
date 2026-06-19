@@ -282,4 +282,19 @@ physical_measure_gini <- function(sizes, conf_level = 0.80, n_boot = 2000) {
 #' @return A list with gini, abs_gini, mean, median, min, max, n.
 #' @export
 #' @examples
-#' areas <- c(40, 5
+#' areas <- c(40, 55, 80, 120, 200, 350)
+#' physical_measure_summary(areas)
+physical_measure_summary <- function(sizes, conf_level = 0.80, n_boot = 2000) {
+  sizes <- .drop_invalid_sizes(sizes, "physical_measure_summary")
+  if (length(sizes) < 2) stop("Need at least 2 valid (positive) observations.")
+  g <- physical_measure_gini(sizes, conf_level = conf_level, n_boot = n_boot)
+  list(
+    gini     = g,
+    abs_gini = round(g["gini"] * mean(sizes), 2),
+    mean     = round(mean(sizes), 3),
+    median   = round(median(sizes), 3),
+    min      = round(min(sizes), 3),
+    max      = round(max(sizes), 3),
+    n        = length(sizes)
+  )
+}

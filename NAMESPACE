@@ -36,4 +36,5 @@ export(simulate_category_bias)
 export(sqrt_count_bonus)
 importFrom(stats,median)
 importFrom(stats,qgamma)
-importFrom(stats,va
+importFrom(stats,var)
+importFrom(utils,read.csv)

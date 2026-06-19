@@ -15,4 +15,5 @@ Use with \code{\link[=read_count_data]{read_count_data()}} to load it.
 }
 \examples{
 path <- example_data_path()
-df <- read_count_data
+df <- read_count_data(path)
+}

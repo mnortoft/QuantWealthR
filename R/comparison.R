@@ -223,4 +223,54 @@ plot_lorenz_comparison <- function(pipeline_result, title = NULL, cases = NULL,
   if (length(ld_list) == 0) stop("No Lorenz data available.")
 
   # Resolve case order (user-supplied case_order, else pipeline order)
-  ord_cases
+  ord_cases <- .order_cases(names(by_group), case_order)
+
+  ld_all <- do.call(rbind, ld_list)
+  ld_all$case <- factor(ld_all$case, levels = ord_cases)
+
+  # Only show the combined measure (prestige + sqrt counts) for clarity
+  ld_combined <- ld_all[ld_all$measure == "combined (prestige + \u221Acounts)", ]
+
+  # Annotate with Gini values from summary, keeping the resolved case order
+  summary_df <- pipeline_result$summary
+  if (!is.null(summary_df) && "gini_combined" %in% names(summary_df)) {
+    summary_df <- summary_df[match(ord_cases, summary_df$group), , drop = FALSE]
+    labels <- paste0(summary_df$group, " (G=", round(summary_df$gini_combined, 2), ")")
+    ld_combined$case <- factor(ld_combined$case, levels = ord_cases,
+                                labels = labels)
+  }
+
+  ggplot2::ggplot(ld_combined,
+                   ggplot2::aes(x = cum_pop, y = cum_wealth, colour = case)) +
+    ggplot2::geom_line(linewidth = 0.8) +
+    ggplot2::geom_abline(slope = 1, intercept = 0, colour = "grey70") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = "right") +
+    ggplot2::labs(
+      title  = title %||% "Lorenz curves by case",
+      x      = "Cumulative population share",
+      y      = "Cumulative wealth share",
+      colour = "Case"
+    )
+}
+
+
+#' Summary table of inequality results across cases
+#'
+#' Returns the [qw_pipeline()] summary data frame formatted for easy
+#' reading, with optional rounding.
+#'
+#' @param pipeline_result Output from [qw_pipeline()].
+#' @param digits Number of decimal places (default 3).
+#' @return A data frame with one row per case.
+#' @export
+cases_summary <- function(pipeline_result, digits = 3) {
+  df <- pipeline_result$summary
+  if (nrow(df) == 0) {
+    message("No cases processed.")
+    return(invisible(df))
+  }
+  num_cols      <- sapply(df, is.numeric)
+  df[num_cols]  <- lapply(df[num_cols], round, digits = digits)
+  df
+}

@@ -514,4 +514,5 @@ simulate_category_bias <- function(df,
     }
     if (length(grp) > 1) { groups[[length(groups) + 1]] <- grp; assigned[i] <- TRUE }
   }
-  gro
+  groups
+}

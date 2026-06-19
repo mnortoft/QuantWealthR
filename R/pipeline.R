@@ -228,4 +228,24 @@ qw_pipeline <- function(df,
   summary_df <- if (length(rows_list) > 0)
     do.call(rbind, rows_list) else data.frame()
 
-  list(summary = summary_df, by_gr
+  list(summary = summary_df, by_group = by_group)
+}
+
+
+#' Print a formatted summary of qw_pipeline results
+#'
+#' @param pipeline_result Output from [qw_pipeline()].
+#' @param digits Number of decimal places (default 3).
+#' @export
+print_pipeline_summary <- function(pipeline_result, digits = 3) {
+  df <- pipeline_result$summary
+  if (nrow(df) == 0) {
+    message("No groups were successfully processed.")
+    return(invisible(NULL))
+  }
+  # Round numeric columns
+  num_cols <- sapply(df, is.numeric)
+  df[num_cols] <- lapply(df[num_cols], round, digits = digits)
+  print(df, row.names = FALSE)
+  invisible(df)
+}

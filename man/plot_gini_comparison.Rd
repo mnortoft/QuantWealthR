@@ -34,4 +34,14 @@ wealth) as a secondary point in a different colour. Default FALSE.}
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
-Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and produces a 
+Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and produces a point + error bar plot
+showing the Gini coefficient (with 80\% CI when available) for each case,
+with cases on the x-axis and Gini on the y-axis.  Works for both count data
+and physical measure data.
+}
+\examples{
+\dontrun{
+result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
+plot_gini_comparison(result)
+}
+}

@@ -1003,4 +1003,5 @@ plot_physical_decile <- function(sizes, data_type = "Physical measure",
                    panel.grid.major.x = ggplot2::element_blank(),
                    panel.grid.minor.x = ggplot2::element_blank()) +
     ggplot2::labs(title = "Decile distribution", x = NULL,
-                  y = "Proportion of total", fill = "Decil
+                  y = "Proportion of total", fill = "Decile")
+}

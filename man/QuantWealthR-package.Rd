@@ -80,4 +80,22 @@ A step-by-step introduction is available as a package vignette:
 \if{html}{\out{<div class="sourceCode">}}\preformatted{vignette("introduction", package = "QuantWealthR")
 }\if{html}{\out{</div>}}
 
-The vignette ship
+The vignette ships with the installed and CRAN versions of the package. If
+you installed from source and it is missing, rebuild and install it with:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{devtools::install(build_vignettes = TRUE)
+browseVignettes("QuantWealthR")
+}\if{html}{\out{</div>}}
+}
+}
+\seealso{
+\itemize{
+\item QuantWealth web app: \url{https://quantwealth.eu}
+\item Accompanying paper: \url{https://doi.org/10.31235/osf.io/wzcqy_v2}
+}
+}
+\author{
+\strong{Maintainer}: Mikkel Nørtoft \email{mattbeets@gmail.com}
+
+}
+\keyword{internal}

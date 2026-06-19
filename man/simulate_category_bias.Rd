@@ -92,4 +92,6 @@ Prestige+1+sqrt-count -- for both split and lump scenarios.
 df    <- read_count_data("my_graves.csv")
 pres  <- calculate_prestige(df)
 res   <- simulate_category_bias(df, pres, n_sims = 100)
-plot_bias(res, case = "Baden", dates = "3360-2890 B
+plot_bias(res, case = "Baden", dates = "3360-2890 BCE")
+}
+}

@@ -236,4 +236,9 @@ If you use QuantWealthR in published research, please cite the accompanying pape
 
 > Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. https://doi.org/10.31235/osf.io/wzcqy_v2
 
---
+---
+
+## See also
+
+- [QuantWealth online app](https://quantwealth.eu)
+- [QuantWealth documentation](https://quantwealth.eu/documentation.html)

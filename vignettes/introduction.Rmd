@@ -398,4 +398,13 @@ set.seed(42)
 bias <- simulate_category_bias(df, n_sims = 200)
 
 set.seed(42)
-ineq <- 
+ineq <- inequality_summary(pres, n_boot = 500)
+```
+
+The **prestige values** (`calculate_prestige()`) and **observed Gini** (`orig_gini_*` in bias results) are fully deterministic — no seed needed.
+
+---
+
+## Citation
+
+> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. <https://doi.org/10.31235/osf.io/wzcqy_v2>

@@ -103,4 +103,10 @@ result$summary
 houses <- data.frame(
   phase   = rep(c("Phase 1", "Phase 2"), each = 20),
   house   = paste0("H", 1:40),
-  area_m2 = c(rlnorm(20, 4, 0.5), r
+  area_m2 = c(rlnorm(20, 4, 0.5), rlnorm(20, 4.5, 0.7))
+)
+result_phys <- qw_pipeline(houses, group_col = "phase", id_col = "house",
+                            data_type = "physical", measure_col = "area_m2")
+result_phys$summary
+}
+}

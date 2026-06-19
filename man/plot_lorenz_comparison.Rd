@@ -24,4 +24,15 @@ legend (e.g. \code{c("Early", "Middle", "Late")}).  If \code{NULL} (default), th
 \code{\link[=qw_pipeline]{qw_pipeline()}} order is used.  Cases omitted are appended at the end.}
 }
 \value{
-A \link[ggplot2:gg
+A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
+}
+\description{
+Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and draws one Lorenz curve per case,
+coloured by case.
+}
+\examples{
+\dontrun{
+result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
+plot_lorenz_comparison(result)
+}
+}
