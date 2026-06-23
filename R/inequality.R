@@ -57,6 +57,15 @@ calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
 #' on adult graves only; a separate Gini is computed for subadult-only graves
 #' if at least 2 exist.
 #'
+#' In addition to those headline fields (kept for backward compatibility),
+#' the returned `$grid` data frame gives every combination of the three
+#' measures and three age groups (adults / subadults / all graves combined)
+#' in one tidy table -- e.g. for plotting code that needs to let a user pick
+#' any measure x age-group combination without re-deriving subsets itself.
+#' When no age-separation columns are present, "adults" and "all" are
+#' identical (there is nothing to separate), and "subadults" is `NA` (no
+#' subadult-only rows exist to compute on).
+#'
 #' @param prestige_df Output from [calculate_prestige()].
 #' @param conf_level Numeric CI level (default 0.80). Set NA to skip CI.
 #' @param n_boot Bootstrap replicates (default 500, used when n <= 500).
@@ -70,6 +79,13 @@ calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
 #'   - `n_adult`, `n_subadult`: counts when age data present (else NA).
 #'   - `gini_subadult`, `abs_gini_subadult`, `mean_wealth_subadult`:
 #'     subadult results when available (else NA).
+#'   - `grid`: a data frame with one row per `measure` (combined/prestige/tot)
+#'     x `graves` (adults/subadults/all) combination, with columns `n`,
+#'     `gini`, `lower`, `upper`, `abs_gini`, `mean_wealth`, `median_wealth`.
+#'     Combinations with fewer than 2 observations have `NA` statistics
+#'     (silently -- e.g. "subadults" when there is no age separation at all
+#'     -- rather than warning, since that combination is structurally absent
+#'     for every group in that case, not a data problem worth flagging).
 #' @export
 #' @examples
 #' df <- data.frame(
@@ -92,6 +108,7 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
     n_subadult <- nrow(sub_df)
   } else {
     main_df    <- prestige_df
+    sub_df     <- prestige_df[0, ]
     n_adult    <- NA_integer_
     n_subadult <- NA_integer_
   }
@@ -118,6 +135,60 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
     abs_gini_sub  <- NA_real_
   }
 
+  # --- Full measure x graves grid ----------------------------------------
+  # "adults" and "all" use the same subset (and are therefore numerically
+  # identical) when there is no age-separation data; "subadults" is then an
+  # empty subset (0 rows) by construction, not a data issue, so no warning
+  # is raised for that combination -- see calculate_gini()'s own n < 2 warning,
+  # which we deliberately bypass below for exactly this structural case.
+  graves_dfs <- list(
+    adults    = main_df,
+    subadults = sub_df,
+    all       = prestige_df
+  )
+  measure_specs <- list(
+    combined = list(col = "combined_total", add_one = FALSE),
+    prestige = list(col = "prestige_total",  add_one = FALSE),
+    tot      = list(col = "raw_TOT",         add_one = TRUE)
+  )
+
+  grid_rows <- list()
+  for (gv in names(graves_dfs)) {
+    sub_vals <- graves_dfs[[gv]]
+    for (ms in names(measure_specs)) {
+      spec   <- measure_specs[[ms]]
+      vals   <- sub_vals[[spec$col]]
+      n_obs  <- sum(!is.na(vals))
+
+      if (n_obs >= 2) {
+        g        <- calculate_gini(vals, add_one = spec$add_one,
+                                    conf_level = conf_level, n_boot = n_boot)
+        mean_v   <- mean(vals, na.rm = TRUE)
+        median_v <- median(vals, na.rm = TRUE)
+        abs_g    <- round(unname(g["gini"]) * mean_v, 2)
+      } else {
+        g        <- c(gini = NA_real_, lower = NA_real_, upper = NA_real_)
+        mean_v   <- NA_real_
+        median_v <- NA_real_
+        abs_g    <- NA_real_
+      }
+
+      grid_rows[[length(grid_rows) + 1]] <- data.frame(
+        measure       = ms,
+        graves        = gv,
+        n             = n_obs,
+        gini          = unname(g["gini"]),
+        lower         = unname(g["lower"]),
+        upper         = unname(g["upper"]),
+        abs_gini      = abs_g,
+        mean_wealth   = round(mean_v, 3),
+        median_wealth = round(median_v, 3),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  grid <- do.call(rbind, grid_rows)
+
   list(
     gini_combined        = g_combined,
     gini_prestige        = g_prestige,
@@ -132,7 +203,8 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
     n_subadult           = n_subadult,
     gini_subadult        = g_sub,
     abs_gini_subadult    = unname(abs_gini_sub),
-    mean_wealth_subadult = mean_w_sub
+    mean_wealth_subadult = mean_w_sub,
+    grid                 = grid
   )
 }
 

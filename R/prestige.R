@@ -72,6 +72,19 @@ get_TOT_means <- function(tot_range) {
 #' unique types (n = 1) a weak non-informative prior is used, and the
 #' credible interval is narrowed proportionally to the total sample size.
 #'
+#' Important: because the prior's mean is fitted (via method of moments) to
+#' equal the type's own observed mean, `bayes_est` is mathematically
+#' identical to the simple mean of that type's TOT values for every type
+#' with n >= 2 -- this is a property of the algebra, not an approximation.
+#' For n = 1, the weak prior pulls the estimate by a negligible amount
+#' (under 1% for typical TOT values). In other words, this function does
+#' not shrink or stabilise the *point estimate* for rare types relative to
+#' [get_TOT_means()] -- what it adds is `lowerCI`/`upperCI`, a credible
+#' interval around that same point estimate that widens for low-n types and
+#' narrows for high-n types. That interval is for display only (used by
+#' [plot_prestige()]); it does not feed into [apply_prestige_bayesian()]'s
+#' weights or any downstream Gini/wealth calculation.
+#'
 #' @param tot_range Output from [get_TOT_range()].
 #' @return A data frame with columns `Type`, `bayes_est`, `lowerCI`,
 #'   `upperCI`, `prior_type`, `item_n`, `observed_mean`.
@@ -195,6 +208,14 @@ apply_prestige_mean <- function(means_df, df) {
 #' Apply prestige weights to a grave goods data frame (Bayesian method)
 #'
 #' Replaces each count > 0 with the Bayesian posterior mean for that type.
+#' For types with n >= 2 occurrences this value is numerically identical to
+#' the plain mean used by [apply_prestige_mean()] -- see [bayesian_prestige()]
+#' for why. Choosing `method = "bayesian"` over `method = "mean"` in
+#' [calculate_prestige()] therefore does not change the resulting wealth
+#' scores or Gini coefficients except by a negligible amount for types that
+#' occur in exactly one grave; its practical benefit is the credible
+#' interval [bayesian_prestige()] reports alongside each estimate, shown in
+#' [plot_prestige()].
 #'
 #' @param bayes_df Output from [bayesian_prestige()].
 #' @param df The original data frame (first column = ID, rest = counts).

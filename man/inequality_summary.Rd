@@ -25,6 +25,13 @@ statistics of \code{combined_total}.
 \item \code{n_adult}, \code{n_subadult}: counts when age data present (else NA).
 \item \code{gini_subadult}, \code{abs_gini_subadult}, \code{mean_wealth_subadult}:
 subadult results when available (else NA).
+\item \code{grid}: a data frame with one row per \code{measure} (combined/prestige/tot)
+x \code{graves} (adults/subadults/all) combination, with columns \code{n},
+\code{gini}, \code{lower}, \code{upper}, \code{abs_gini}, \code{mean_wealth}, \code{median_wealth}.
+Combinations with fewer than 2 observations have \code{NA} statistics
+(silently -- e.g. "subadults" when there is no age separation at all
+-- rather than warning, since that combination is structurally absent
+for every group in that case, not a data problem worth flagging).
 }
 }
 \description{
@@ -44,6 +51,15 @@ bonus).
 When age-separation columns exist (\code{is_adult_grave}) the Gini is computed
 on adult graves only; a separate Gini is computed for subadult-only graves
 if at least 2 exist.
+
+In addition to those headline fields (kept for backward compatibility),
+the returned \verb{$grid} data frame gives every combination of the three
+measures and three age groups (adults / subadults / all graves combined)
+in one tidy table -- e.g. for plotting code that needs to let a user pick
+any measure x age-group combination without re-deriving subsets itself.
+When no age-separation columns are present, "adults" and "all" are
+identical (there is nothing to separate), and "subadults" is \code{NA} (no
+subadult-only rows exist to compute on).
 }
 \examples{
 df <- data.frame(

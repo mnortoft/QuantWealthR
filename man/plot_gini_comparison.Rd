@@ -2,46 +2,112 @@
 % Please edit documentation in R/comparison.R
 \name{plot_gini_comparison}
 \alias{plot_gini_comparison}
-\title{Compare Gini coefficients across cases}
+\title{Compare wealth-inequality statistics across cases}
 \usage{
 plot_gini_comparison(
   pipeline_result,
+  series = c("gini", "abs_gini"),
+  graves = c("adults", "all", "subadults"),
   measure = c("combined", "prestige", "tot"),
   case_order = NULL,
   title = NULL,
-  abs_gini = FALSE
+  show_n = TRUE
 )
 }
 \arguments{
-\item{pipeline_result}{Output from \code{\link[=qw_pipeline]{qw_pipeline()}}.}
+\item{pipeline_result}{A \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}} result,
+\strong{or} a list of such results to plot together -- e.g.
+\code{list(Counts = count_res, Sizes = phys_res)} to compare count-data and
+physical-measure cases side by side, or several separate
+\code{\link[=count_pipeline]{count_pipeline()}} calls for datasets whose columns didn't fit one
+\code{\link[=count_pipeline]{count_pipeline()}} call. When the data spans more than one dataset --
+whether because a single pipeline call was itself given multiple
+datasets (see \code{data} in \code{\link[=count_pipeline]{count_pipeline()}}), or because a list of
+several results is passed here, or both -- the plot is split into one
+facet panel per dataset, each with its own x-axis (\code{scales = "free_x"}),
+since different datasets may have entirely different group sets.}
 
-\item{measure}{For count data: which Gini to plot -- \code{"combined"} (default,
-prestige + sqrt-count bonus), \code{"prestige"}, or \code{"tot"}.  Ignored for
-physical measure pipelines.}
+\item{series}{Character vector selecting which statistics to plot, any
+subset of \code{c("gini", "abs_gini", "mean_wealth", "median_wealth")}.
+Default \code{c("gini", "abs_gini")} (the previous default behaviour).
+\code{"abs_gini"} is the Absolute Gini (G x mean wealth); \code{"mean_wealth"}/
+\code{"median_wealth"} plot the mean/median wealth (or physical measure)
+value per case as their own point+line series.}
 
-\item{case_order}{Optional character vector giving the left-to-right order
-of cases (e.g. \code{c("Early", "Middle", "Late")}).  If \code{NULL} (default),
-cases keep the order returned by \code{\link[=qw_pipeline]{qw_pipeline()}} -- the factor-level order
-of the grouping column, or its order of first appearance if not a factor.
-Cases omitted from \code{case_order} are appended at the end.}
+\item{graves}{For count-data cases: which age group's statistics to
+plot -- \code{"adults"} (default), \code{"all"} (all graves pooled), or
+\code{"subadults"}. Pulled from the \code{grid} element of \code{\link[=inequality_summary]{inequality_summary()}}
+(computed inside \code{\link[=count_pipeline]{count_pipeline()}}), so this requires no extra
+computation -- it was already there. Ignored for physical-measure
+cases (no age concept). \code{"subadults"} will be \code{NA} for any case where
+age-separation columns weren't present in the source data, or fewer
+than 2 subadult rows existed -- this prints as a gap in the line, not
+an error.}
 
-\item{title}{Optional plot title.}
+\item{measure}{For count-data cases: which Gini measure to use --
+\code{"combined"} (default, prestige + sqrt-count bonus), \code{"prestige"}, or
+\code{"tot"}. Ignored for physical-measure cases.}
 
-\item{abs_gini}{Logical. If TRUE, also shows the absolute Gini (G x mean
-wealth) as a secondary point in a different colour. Default FALSE.}
+\item{case_order}{Optional character vector giving the left-to-right
+order of cases by their \code{group} name (e.g. \code{c("Early", "Middle", "Late")}), applied within every facet. If \code{NULL} (default), cases keep
+the order returned by the pipeline. Cases omitted from \code{case_order} are
+appended at the end.}
+
+\item{title}{Optional plot title. For count-data cases, a note on which
+age group is plotted ("(adults only)", "(all graves)", "(subadults
+only)", from \code{graves} above) is appended to this -- it is not a
+default that disappears once you set your own title. No note is added
+when every case is a physical-measure case.}
+
+\item{show_n}{Logical. If TRUE (default), each x-axis tick is labelled
+\code{"<group> (n=<n>)"}, showing the sample size behind each case.}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
-Takes the output of \code{\link[=qw_pipeline]{qw_pipeline()}} and produces a point + error bar plot
-showing the Gini coefficient (with 80\% CI when available) for each case,
-with cases on the x-axis and Gini on the y-axis.  Works for both count data
-and physical measure data.
+Takes the output of \code{\link[=count_pipeline]{count_pipeline()}} and/or \code{\link[=phys_pipeline]{phys_pipeline()}} and
+produces a point + line (+ error bar, where available) plot comparing
+one or more statistics across cases, with cases on the x-axis.
+}
+\details{
+When \code{"gini"} is among \code{series}, the left axis is Gini's natural [0, 1]
+scale. Any other selected series (\code{abs_gini}, \code{mean_wealth},
+\code{median_wealth}) is unbounded, so it's drawn on a second, rescaled axis --
+the standard ggplot2 dual-axis trick (there's really only one underlying
+drawing scale; the right-hand labels are relabelled back to original
+units via \code{\link[ggplot2:sec_axis]{ggplot2::sec_axis()}}). When \strong{more than one} unbounded series
+is selected at once (e.g. both \code{abs_gini} and \code{mean_wealth}), they are
+pooled onto \emph{one shared} rescaled axis using their combined range -- the
+right-hand axis label then names all of them, but only one of them can be
+read exactly off that axis at a glance; treat the right-hand axis as
+approximate in that case, or call this function once per series instead.
+If \code{"gini"} is not in \code{series} at all, no rescaling happens -- all
+selected series share one plain axis in their own units, which is exact
+but can look odd if their magnitudes differ a lot (e.g. mean wealth and
+absolute Gini).
+
+Being a normal \link[ggplot2:ggplot]{ggplot2::ggplot} object (not a pre-rendered image),
+every element this function sets -- title, axis labels, colours, theme --
+can be overridden by the caller afterwards using standard ggplot2 syntax,
+e.g. \code{plot_gini_comparison(result) + ggplot2::labs(title = "My title")}
+or \code{+ ggplot2::theme(legend.position = "right")}. Adding a
+\code{labs()}/\verb{scale_*()}/\code{theme()} call after the function call replaces only
+the component(s) named in that call; everything else is left as-is.
 }
 \examples{
 \dontrun{
-result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
+result <- count_pipeline(df, group_col = "phase", id_col = "grave")
 plot_gini_comparison(result)
+plot_gini_comparison(result, series = "gini", graves = "all")
+plot_gini_comparison(result, series = c("gini", "mean_wealth"))
+
+# Multiple datasets, faceted automatically
+result2 <- count_pipeline(list(SiteA = df_a, SiteB = df_b),
+                           group_col = "phase", id_col = "grave")
+plot_gini_comparison(result2)
+
+# Count data and physical-measure data together
+plot_gini_comparison(list(Counts = result, Sizes = phys_result))
 }
 }

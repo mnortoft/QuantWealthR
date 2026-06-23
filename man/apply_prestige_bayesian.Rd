@@ -17,4 +17,12 @@ and a \code{prestige_total} column appended.
 }
 \description{
 Replaces each count > 0 with the Bayesian posterior mean for that type.
+For types with n >= 2 occurrences this value is numerically identical to
+the plain mean used by \code{\link[=apply_prestige_mean]{apply_prestige_mean()}} -- see \code{\link[=bayesian_prestige]{bayesian_prestige()}}
+for why. Choosing \code{method = "bayesian"} over \code{method = "mean"} in
+\code{\link[=calculate_prestige]{calculate_prestige()}} therefore does not change the resulting wealth
+scores or Gini coefficients except by a negligible amount for types that
+occur in exactly one grave; its practical benefit is the credible
+interval \code{\link[=bayesian_prestige]{bayesian_prestige()}} reports alongside each estimate, shown in
+\code{\link[=plot_prestige]{plot_prestige()}}.
 }

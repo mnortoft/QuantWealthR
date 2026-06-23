@@ -24,6 +24,20 @@ uniform samples (see inline comments in the source for details). For
 unique types (n = 1) a weak non-informative prior is used, and the
 credible interval is narrowed proportionally to the total sample size.
 }
+\details{
+Important: because the prior's mean is fitted (via method of moments) to
+equal the type's own observed mean, \code{bayes_est} is mathematically
+identical to the simple mean of that type's TOT values for every type
+with n >= 2 -- this is a property of the algebra, not an approximation.
+For n = 1, the weak prior pulls the estimate by a negligible amount
+(under 1\% for typical TOT values). In other words, this function does
+not shrink or stabilise the \emph{point estimate} for rare types relative to
+\code{\link[=get_TOT_means]{get_TOT_means()}} -- what it adds is \code{lowerCI}/\code{upperCI}, a credible
+interval around that same point estimate that widens for low-n types and
+narrows for high-n types. That interval is for display only (used by
+\code{\link[=plot_prestige]{plot_prestige()}}); it does not feed into \code{\link[=apply_prestige_bayesian]{apply_prestige_bayesian()}}'s
+weights or any downstream Gini/wealth calculation.
+}
 \examples{
 df <- data.frame(
   id = 1:10,

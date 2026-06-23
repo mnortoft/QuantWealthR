@@ -34,7 +34,7 @@ The package handles two types of archaeological data:
 | **Count data** | Grave goods, hoard types, house objects | `calculate_prestige()`, `inequality_summary()`, `simulate_category_bias()` |
 | **Physical measures** | House floor area (m²), mound volume (m³), grave pit depth (cm) | `physical_measure_summary()`, `plot_physical_lorenz()` |
 
-Both types can be processed in bulk across multiple periods or sites using `qw_pipeline()`.
+Both types can be processed in bulk across multiple periods or sites using `count_pipeline()` (count data) or `phys_pipeline()` (physical measures). Both also accept a named list of datasets, so sites with different columns can be batch-processed and compared together.
 
 ---
 
@@ -102,10 +102,10 @@ plot_bias_wealth_lorenz(bias_w, case = "Bell Beaker")
 
 ```r
 # Dataset with a grouping column (phase, period, site, etc.)
-result <- qw_pipeline(df,
-                       group_col = "phase",
-                       id_col    = "grave_id",
-                       method    = "bayesian")
+result <- count_pipeline(df,
+                          group_col = "phase",
+                          id_col    = "grave_id",
+                          method    = "bayesian")
 
 # Summary table: one row per case
 cases_summary(result)
@@ -113,6 +113,21 @@ cases_summary(result)
 # Compare Gini values across cases
 plot_gini_comparison(result)
 plot_lorenz_comparison(result)
+
+# Multiple datasets at once (e.g. different sites with different grave-good
+# columns) -- pass a named list instead of a single data frame
+result_multi <- count_pipeline(list(SiteA = df_a, SiteB = df_b),
+                                group_col = "phase",
+                                id_col    = "grave_id")
+plot_gini_comparison(result_multi)   # faceted by site automatically
+
+# Comparing cultures on one absolute-date timeline instead of facets --
+# requires a numeric date column (negative = BCE, positive = CE)
+result_timeline <- count_pipeline(list(CWC = cwc_df, Unetice = unetice_df),
+                                   group_col = "phase",
+                                   date_col  = "date")
+plot_gini_timeline(result_timeline)                     # one line per culture
+plot_gini_timeline(result_timeline, mode = "combined")  # one pooled trend line (only if dates don't overlap)
 ```
 
 ---
@@ -191,10 +206,12 @@ First column = unit ID, second column = the measure value.
 ### Multi-case pipeline
 | Function | Description |
 |----------|-------------|
-| `qw_pipeline(df, group_col, id_col, data_type, method, run_bias_sim)` | Batch analysis across groups |
+| `count_pipeline(data, group_col, id_col, date_col, method, run_bias_sim)` | Batch analysis across groups (count data); `data` may be a single data frame or a named list of data frames; `date_col` optionally carries a per-row absolute date through into the result for `plot_gini_timeline()` |
+| `phys_pipeline(data, group_col, measure_col, date_col)` | Batch analysis across groups (physical measures); same single-df-or-named-list input, same optional `date_col` |
 | `cases_summary(pipeline_result)` | Formatted summary table |
 | `print_pipeline_summary(pipeline_result)` | Print to console |
-| `plot_gini_comparison(pipeline_result, measure, case_order)` | Point + CI plot comparing Gini across cases (cases on x-axis) |
+| `plot_gini_comparison(pipeline_result, series, graves, measure, case_order)` | Point + CI plot comparing Gini/Absolute Gini/mean/median wealth across cases (cases on x-axis), faceted by dataset when multiple datasets are present |
+| `plot_gini_timeline(pipeline_result, series, graves, measure, mode, series_sep)` | Same comparison, but on a continuous absolute-date x-axis (requires `date_col`); cultures/groups in one shared plot, coloured separately or pooled into one combined trend line |
 | `plot_lorenz_comparison(pipeline_result, cases, case_order)` | Overlaid Lorenz curves per case |
 
 ---
@@ -205,7 +222,7 @@ First column = unit ID, second column = the measure value.
 
 Artefact types are assigned a prestige weight based on their **exclusivity**: types found in graves with many other types (high TOT — Total Object Types) get lower prestige; types found only in richly furnished graves get higher prestige.
 
-**Bayesian method (recommended)**: For types with n ≥ 2 occurrences, fits a Gamma prior using method of moments from the type's own TOT distribution (local empirical prior). For unique types (n = 1) a weak prior is used.
+**Bayesian method (recommended)**: For types with n ≥ 2 occurrences, fits a Gamma prior using method of moments from the type's own TOT distribution (local empirical prior). For unique types (n = 1) a weak prior is used. Because the prior is fitted to match each type's own observed mean, the resulting point estimate is numerically identical to the `"mean"` method for n ≥ 2 (and differs negligibly for n = 1) — the methods only differ in the credible interval reported alongside the estimate (used by `plot_prestige()`), not in the wealth scores or Gini coefficients.
 
 **Mean method**: Prestige weight = mean TOT of graves containing that type.
 

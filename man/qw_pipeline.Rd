@@ -2,7 +2,7 @@
 % Please edit documentation in R/pipeline.R
 \name{qw_pipeline}
 \alias{qw_pipeline}
-\title{Run the full QuantWealth analysis pipeline on a grouped dataset}
+\title{Run the QuantWealth analysis pipeline (deprecated)}
 \usage{
 qw_pipeline(
   df,
@@ -19,94 +19,37 @@ qw_pipeline(
 )
 }
 \arguments{
-\item{df}{A data frame.  Must contain:
-\itemize{
-\item A grouping column named by the \code{group_col} argument.
-\item Either count columns (first non-group column = ID, rest = numeric
-counts) \strong{or} a single numeric column for physical measures (set
-\code{data_type = "physical"}).
-}}
+\item{df}{A data frame. See \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}}.}
 
-\item{group_col}{Character. Name of the column to group by (e.g.
-\code{"phase"}, \code{"period"}, \code{"site"}).  Make this column an ordered/explicit
-factor to control the order of groups in the output and plots (e.g.
-chronological phases); otherwise groups follow their order of first
-appearance in the data.}
+\item{group_col}{Character. Name of the column to group by.}
 
-\item{id_col}{Character. Name of the unit ID column (e.g. \code{"grave_id"}).
-If NULL (default), the first non-group column is used as the ID.}
-
-\item{data_type}{\code{"count"} (default) for grave goods / hoard / house
-object data, or \code{"physical"} for a single numeric measure column.}
-
-\item{measure_col}{For \code{data_type = "physical"}: name of the column
-containing the measure values (e.g. \code{"area_m2"}). Required when
+\item{id_col}{Character. Name of the unit ID column. Ignored when
 \code{data_type = "physical"}.}
 
-\item{method}{Prestige method: \code{"bayesian"} (default) or \code{"mean"}. Ignored
-for physical data.}
+\item{data_type}{\code{"count"} (default) or \code{"physical"}.}
 
-\item{use_age_sep}{Logical. Enable age separation if \code{adult_count} /
-\code{subadult_count} columns are present. Default TRUE.}
+\item{measure_col}{Required when \code{data_type = "physical"}.}
 
-\item{run_bias_sim}{Logical. Run category bias simulation per group.
-Can be slow for many groups or large datasets. Default FALSE.}
+\item{method}{Prestige method, count data only.}
 
-\item{n_bias_sims}{Integer. Number of bias simulations per group
-(default 200). Ignored when \code{run_bias_sim = FALSE}.}
+\item{use_age_sep}{Logical, count data only.}
 
-\item{conf_level}{Numeric CI level for Gini coefficients (default 0.80).}
+\item{run_bias_sim}{Logical, count data only.}
 
-\item{min_group_size}{Integer. Groups with fewer observations than this are
-skipped with a warning (default 3).}
+\item{n_bias_sims}{Integer, count data only.}
+
+\item{conf_level}{Numeric CI level.}
+
+\item{min_group_size}{Integer.}
 }
 \value{
-A list with two elements:
-\itemize{
-\item \verb{$summary}: a data frame with one row per group and columns for all
-key inequality statistics.
-\item \verb{$by_group}: a named list (one element per group) containing the full
-output of each analysis step.
-}
+See \code{\link[=count_pipeline]{count_pipeline()}} / \code{\link[=phys_pipeline]{phys_pipeline()}}.
 }
 \description{
-Given a data frame with a grouping column (e.g. period, phase, site), this
-function runs the complete analysis pipeline for each group and collects
-results in a convenient list.  Supports both count data (grave goods, hoard
-types, house objects) and physical measure data (house area, mound volume,
-etc.).
-}
-\details{
-\strong{What is computed per group:}
-\enumerate{
-\item Prestige values (\code{calculate_prestige()}) -- count data only.
-\item Inequality summary (\code{inequality_summary()}) -- count data only.
-\item Category bias simulation (\code{simulate_category_bias()}) -- count data only,
-only when \code{run_bias_sim = TRUE}.
-\item Physical measure Gini (\code{physical_measure_gini()}) -- physical data only.
-}
-}
-\examples{
-\dontrun{
-# Count data example -- multiple Bronze Age phases
-df <- data.frame(
-  phase  = rep(c("Early", "Middle", "Late"), each = 15),
-  grave  = paste0("G", 1:45),
-  sword  = sample(c(NA, 1:3), 45, replace = TRUE),
-  shield = sample(c(NA, 1:2), 45, replace = TRUE),
-  bronze = sample(c(NA, 1:4), 45, replace = TRUE)
-)
-result <- qw_pipeline(df, group_col = "phase", id_col = "grave")
-result$summary
-
-# Physical measure example -- house areas across phases
-houses <- data.frame(
-  phase   = rep(c("Phase 1", "Phase 2"), each = 20),
-  house   = paste0("H", 1:40),
-  area_m2 = c(rlnorm(20, 4, 0.5), rlnorm(20, 4.5, 0.7))
-)
-result_phys <- qw_pipeline(houses, group_col = "phase", id_col = "house",
-                            data_type = "physical", measure_col = "area_m2")
-result_phys$summary
-}
+Deprecated -- replaced by \code{\link[=count_pipeline]{count_pipeline()}} (for count data) and
+\code{\link[=phys_pipeline]{phys_pipeline()}} (for physical measure data), which give each data type
+its own clearer interface and both support multiple datasets natively.
+This wrapper still works exactly as before and dispatches to one of the
+two new functions (with a warning), but will be removed in a future
+version.
 }

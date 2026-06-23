@@ -19,7 +19,7 @@ area, grave pit depth, mound volume). Unlike the count-data reader, this
 applies no zero-to-NA cleaning: the file is read as-is into a data frame.
 You choose which column to analyse later, at the inequality stage -- e.g.
 by passing \code{df$area_m2} to \code{\link[=physical_measure_summary]{physical_measure_summary()}} or \code{measure_col}
-to \code{\link[=qw_pipeline]{qw_pipeline()}}.
+to \code{\link[=phys_pipeline]{phys_pipeline()}}.
 }
 \examples{
 \dontrun{

@@ -43,7 +43,7 @@
 #' ## Batch pipeline across multiple periods / phases
 #'
 #' ```
-#' result <- qw_pipeline(df, group_col = "phase", id_col = "grave_id")
+#' result <- count_pipeline(df, group_col = "phase", id_col = "grave_id")
 #' result$summary    # data frame with one row per phase
 #' ```
 #'
@@ -57,7 +57,8 @@
 #' | [decile_data()] | Decile wealth distribution |
 #' | [physical_measure_gini()] | Gini for continuous measure data |
 #' | [simulate_category_bias()] | Monte Carlo bias simulation |
-#' | [qw_pipeline()] | Batch analysis across groups |
+#' | [count_pipeline()] | Batch analysis across groups (count data) |
+#' | [phys_pipeline()] | Batch analysis across groups (physical measures) |
 #' | [plot_prestige()] | Prestige boxplot (ggplot2) |
 #' | [plot_lorenz()] | Lorenz curve (ggplot2) |
 #' | [plot_density()] | Density curves (ggplot2) |

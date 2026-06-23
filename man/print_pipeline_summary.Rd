@@ -2,15 +2,16 @@
 % Please edit documentation in R/pipeline.R
 \name{print_pipeline_summary}
 \alias{print_pipeline_summary}
-\title{Print a formatted summary of qw_pipeline results}
+\title{Print a formatted summary of count_pipeline()/phys_pipeline() results}
 \usage{
 print_pipeline_summary(pipeline_result, digits = 3)
 }
 \arguments{
-\item{pipeline_result}{Output from \code{\link[=qw_pipeline]{qw_pipeline()}}.}
+\item{pipeline_result}{Output from \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}}
+(or the deprecated \code{\link[=qw_pipeline]{qw_pipeline()}}).}
 
 \item{digits}{Number of decimal places (default 3).}
 }
 \description{
-Print a formatted summary of qw_pipeline results
+Print a formatted summary of count_pipeline()/phys_pipeline() results
 }

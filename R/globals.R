@@ -17,9 +17,9 @@
 # silencing the warning some other way.
 utils::globalVariables(c(
   "Direction", "Gini", "Grave_ID", "TOT", "Type", "Type_display", "Value",
-  "abs_g", "bayes_est", "case", "combined_total", "cum_pop", "cum_wealth",
+  "abs_g", "bayes_est", "case", "case_label", "combined_total", "cum_pop", "cum_wealth",
   "cumulative_wealth", "direction", "gini", "iqr_high", "iqr_low", "is_sub",
   "label", "lower", "lowerCI", "measure", "mid_point", "n_in_decile",
-  "orig_gini", "sim_id", "total_wealth", "upper", "upperCI", "value",
-  "wealth_rank", "wealth_share", "x", "x_pos", "y_pos"
+  "orig_gini", "series_group", "sim_id", "total_wealth", "upper", "upperCI",
+  "value", "wealth_rank", "wealth_share", "x", "x_pos", "y_pos"
 ))

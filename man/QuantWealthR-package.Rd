@@ -49,7 +49,7 @@ plot_physical_lorenz(sizes)
 
 \subsection{Batch pipeline across multiple periods / phases}{
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{result <- qw_pipeline(df, group_col = "phase", id_col = "grave_id")
+\if{html}{\out{<div class="sourceCode">}}\preformatted{result <- count_pipeline(df, group_col = "phase", id_col = "grave_id")
 result$summary    # data frame with one row per phase
 }\if{html}{\out{</div>}}
 }
@@ -62,7 +62,8 @@ result$summary    # data frame with one row per phase
    \code{\link[=decile_data]{decile_data()}} \tab Decile wealth distribution \cr
    \code{\link[=physical_measure_gini]{physical_measure_gini()}} \tab Gini for continuous measure data \cr
    \code{\link[=simulate_category_bias]{simulate_category_bias()}} \tab Monte Carlo bias simulation \cr
-   \code{\link[=qw_pipeline]{qw_pipeline()}} \tab Batch analysis across groups \cr
+   \code{\link[=count_pipeline]{count_pipeline()}} \tab Batch analysis across groups (count data) \cr
+   \code{\link[=phys_pipeline]{phys_pipeline()}} \tab Batch analysis across groups (physical measures) \cr
    \code{\link[=plot_prestige]{plot_prestige()}} \tab Prestige boxplot (ggplot2) \cr
    \code{\link[=plot_lorenz]{plot_lorenz()}} \tab Lorenz curve (ggplot2) \cr
    \code{\link[=plot_density]{plot_density()}} \tab Density curves (ggplot2) \cr

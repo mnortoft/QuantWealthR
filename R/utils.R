@@ -118,7 +118,7 @@ read_count_data <- function(filepath) {
 #' applies no zero-to-NA cleaning: the file is read as-is into a data frame.
 #' You choose which column to analyse later, at the inequality stage -- e.g.
 #' by passing `df$area_m2` to [physical_measure_summary()] or `measure_col`
-#' to [qw_pipeline()].
+#' to [phys_pipeline()].
 #'
 #' @param filepath Path to a CSV (.csv) or Excel (.xlsx / .xls) file.
 #' @return A data frame containing the file's contents, unmodified (the CSV

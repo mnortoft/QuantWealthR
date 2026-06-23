@@ -7,7 +7,7 @@
 cases_summary(pipeline_result, digits = 3)
 }
 \arguments{
-\item{pipeline_result}{Output from \code{\link[=qw_pipeline]{qw_pipeline()}}.}
+\item{pipeline_result}{Output from \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}}.}
 
 \item{digits}{Number of decimal places (default 3).}
 }
@@ -15,6 +15,6 @@ cases_summary(pipeline_result, digits = 3)
 A data frame with one row per case.
 }
 \description{
-Returns the \code{\link[=qw_pipeline]{qw_pipeline()}} summary data frame formatted for easy
-reading, with optional rounding.
+Returns the \code{\link[=count_pipeline]{count_pipeline()}}/\code{\link[=phys_pipeline]{phys_pipeline()}} summary data frame
+formatted for easy reading, with optional rounding.
 }

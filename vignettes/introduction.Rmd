@@ -116,8 +116,10 @@ pres[1:6, c("Grave_ID", "raw_TOT", "prestige_total", "combined_total")]
 
 **Choosing a method:**
 
-- `method = "bayesian"` (default, recommended): uses a Bayesian posterior mean per type, with a local empirical prior fitted to each type's TOT distribution. More stable for rare types.
+- `method = "bayesian"` (default, recommended): uses a Bayesian posterior mean per type, with a local empirical prior fitted to each type's TOT distribution.
 - `method = "mean"`: uses the simple mean TOT of graves containing that type.
+
+These two methods give the **same point estimate** for any type that occurs in 2 or more graves -- the local empirical prior is fitted (via method of moments) to match the type's own observed mean exactly, so the "posterior mean" works out to be the same number as the plain mean. For types that occur in only one grave the Bayesian estimate differs from the raw value by a negligible amount (well under 1%). What the Bayesian method actually adds is a **credible interval** around each type's estimate (visible as the blue error bars in `plot_prestige()` below) that widens for rare types and narrows for common ones -- it quantifies how much uncertainty there is about a type's "true" average TOT, but it does not change the wealth scores or Gini coefficients computed downstream, since only the point estimate (not the interval) feeds into those calculations.
 
 ### Step 3: Inequality summary
 
@@ -286,7 +288,7 @@ plot_physical_decile(areas,
 
 ## Multi-case batch pipeline
 
-When your dataset has multiple phases, periods, or sites, use `qw_pipeline()` to run everything at once.
+When your dataset has multiple phases, periods, or sites, use `count_pipeline()` (count data) or `phys_pipeline()` (physical measures) to run everything at once. Both also accept a named list of data frames as their first argument -- e.g. `count_pipeline(list(SiteA = df_a, SiteB = df_b), ...)` -- which is useful when sites have different grave-good columns and can't simply be row-bound together; comparison plots then facet by dataset automatically.
 
 ```{r pipeline}
 # Split the example graves into three fictitious phases for demonstration.
@@ -298,10 +300,10 @@ df_multi$phase <- factor(
   levels = c("Early", "Middle", "Late")
 )
 
-result <- qw_pipeline(df_multi,
-                       group_col = "phase",
-                       id_col    = "Grave_ID",
-                       method    = "bayesian")
+result <- count_pipeline(df_multi,
+                          group_col = "phase",
+                          id_col    = "Grave_ID",
+                          method    = "bayesian")
 
 # Summary table: one row per case
 cases_summary(result)
@@ -334,15 +336,123 @@ houses <- data.frame(
                rlnorm(20, 4.2, 0.9))
 )
 
-result_phys <- qw_pipeline(houses,
-                             group_col   = "phase",
-                             id_col      = "house",
-                             data_type   = "physical",
-                             measure_col = "area_m2")
+result_phys <- phys_pipeline(houses,
+                              group_col   = "phase",
+                              measure_col = "area_m2")
 
 cases_summary(result_phys)
 plot_gini_comparison(result_phys)
 ```
+
+### Multiple datasets: comparing sites or regions (and phases) together
+
+`count_pipeline()` and `phys_pipeline()` both accept a **named list of data frames** instead of a single data frame as their first argument. Each dataset is analysed entirely on its own terms -- its own artefact columns, its own ID column, even its own set of phase names -- because nothing is merged or row-bound across datasets before analysis. This is what makes it possible to compare sites whose grave-good recording differs.
+
+Below, `df_multi` (Site A, from the bundled example data) and a newly simulated `site_b` (Site B) have completely different artefact columns, but both still have a `phase` column with the same three levels:
+
+```{r pipeline_multi, warning = FALSE}
+set.seed(11)
+site_b <- data.frame(
+  grave      = paste0("SB", 1:18),
+  phase      = factor(rep(c("Early", "Middle", "Late"), each = 6),
+                       levels = c("Early", "Middle", "Late")),
+  axe        = sample(c(NA, 1:2), 18, replace = TRUE),
+  necklace   = sample(c(NA, 1:3), 18, replace = TRUE),
+  amber_bead = sample(c(NA, 1:2), 18, replace = TRUE)
+)
+
+result_sites <- count_pipeline(
+  list(SiteA = df_multi, SiteB = site_b),
+  group_col = "phase",
+  method    = "bayesian"
+)
+
+# `case` combines dataset and group, e.g. "SiteA: Early", "SiteB: Middle" --
+# this is what keeps identically-named phases from different sites distinct.
+cases_summary(result_sites)
+```
+
+This single example already covers two of the comparisons you might want: Site A and Site B stand in for two different sites or regions, and within each, three phases are compared. There is no limit on how many datasets or how many groups each one has -- five sites with four phases apiece would work exactly the same way, just passed as a longer named list.
+
+```{r pipeline_multi_plot}
+# Facets by dataset (SiteA / SiteB); phase is the x-axis within each panel.
+plot_gini_comparison(result_sites)
+```
+
+### Combining count and physical-measure pipelines in one plot
+
+`plot_gini_comparison()` can also take a **named list of pipeline results** (rather than raw data) as its first argument. This is how a `count_pipeline()` result and a `phys_pipeline()` result -- two different data types, produced by two different functions -- end up in the same figure:
+
+```{r combine_count_phys}
+plot_gini_comparison(list(Counts = result, Sizes = result_phys))
+```
+
+`result` (grave-good counts, phases Early/Middle/Late) and `result_phys` (house areas, Phase 1/2/3) share no groups or columns in common, but appear as two side-by-side panels, each keeping its own case labels on the x-axis. Use this whenever you want one figure spanning, say, grave-good wealth and house-size wealth for the same broader comparison.
+
+### Choosing what to plot
+
+`plot_gini_comparison()` takes three arguments that control what gets drawn, independently of which pipeline result(s) you pass in:
+
+- `series`: any subset of `"gini"`, `"abs_gini"`, `"mean_wealth"`, `"median_wealth"` -- which summary statistic(s) to show as separate point-and-CI rows.
+- `graves`: `"adults"` (default), `"all"`, or `"subadults"` -- which grave subset to plot, for count-data results only (ignored for physical-measure results).
+- `measure`: `"combined"` (default), `"prestige"`, or `"tot"` -- which of the three wealth measures to plot, for count-data results only (ignored for physical-measure results).
+
+A few of the available combinations (not evaluated here -- the plots above already show what the output looks like):
+
+```{r plot_options, eval = FALSE}
+# Gini and absolute Gini side by side (the default)
+plot_gini_comparison(result, series = c("gini", "abs_gini"))
+
+# Mean and median wealth instead of Gini
+plot_gini_comparison(result, series = c("mean_wealth", "median_wealth"))
+
+# Subadult-only graves, prestige-only measure (no sqrt-count bonus)
+plot_gini_comparison(result, graves = "subadults", measure = "prestige")
+
+# Simple type-count measure (TOT + 1), ignoring prestige weighting entirely
+plot_gini_comparison(result, measure = "tot")
+```
+
+### Comparing cultures on one absolute-date timeline
+
+`plot_gini_comparison()` puts cases on an evenly-spaced, discrete x-axis -- good for "Early vs Middle vs Late", but it doesn't tell you *how much time* separates two cases, and it can't place two different cultures' phases on a shared timeline. `plot_gini_timeline()` does that instead: cases sit at their actual calendar date on a continuous x-axis, so a later culture's phases naturally fall to the right of an earlier culture's, by however much time really separates them.
+
+This needs a date for every case, which has to come from a `date_col` argument passed to [`count_pipeline()`]/[`phys_pipeline()`] -- a numeric column in the source data (negative = BCE, positive = CE), not something the plot computes on its own. Below, six phases from two cultures (Corded Ware Culture and Unetice) are encoded as `"<culture>_<phase>"` strings in a single grouping column, each with grave-level dates scattered around that phase's mean date:
+
+```{r timeline_data, warning = FALSE}
+set.seed(21)
+phases      <- c("CWC_early", "CWC_middle", "CWC_late",
+                  "Unetice_early", "Unetice_middle", "Unetice_late")
+phase_dates <- c(-2800, -2600, -2400, -2300, -2100, -1900)
+
+timeline_df <- do.call(rbind, lapply(seq_along(phases), function(i) {
+  data.frame(
+    grave    = paste0(phases[i], "_", 1:10),
+    case     = phases[i],
+    date     = phase_dates[i] + rnorm(10, sd = 20),
+    axe      = sample(c(NA, 1:2), 10, replace = TRUE),
+    necklace = sample(c(NA, 1:3), 10, replace = TRUE),
+    bead     = sample(c(NA, 1:2), 10, replace = TRUE)
+  )
+}))
+
+result_timeline <- count_pipeline(timeline_df, group_col = "case", date_col = "date")
+cases_summary(result_timeline)[, c("group", "n", "date", "date_min", "date_max", "gini_combined")]
+```
+
+Because this is a single dataset (no named list), `plot_gini_timeline()` parses the series/colour grouping from the part of each case label before the first `"_"` -- `"CWC"` and `"Unetice"` here. (If `CWC_df` and `Unetice_df` had instead been passed as `count_pipeline(list(CWC = cwc_df, Unetice = unetice_df), ...)`, the dataset names would be used directly and no parsing would happen.)
+
+```{r timeline_plot}
+plot_gini_timeline(result_timeline)
+```
+
+Since CWC's phases (around 2800-2400 BCE) and Unetice's phases (around 2300-1900 BCE) don't overlap in time here, it's also valid to ask for one continuous trend line through all six phases in date order, ignoring the culture split (points are still coloured by culture for reference):
+
+```{r timeline_plot_combined}
+plot_gini_timeline(result_timeline, mode = "combined")
+```
+
+`mode = "combined"` is really only meaningful when the series don't overlap in time -- it draws a single line sorted by date, so if two cultures coexisted, that line would have to jump backward and forward between them. `plot_gini_timeline()` checks for this and issues a warning (not an error -- the plot is still drawn) if the parsed series' date ranges overlap and `mode = "combined"` was requested anyway; `mode = "separate"` (the default) has no such restriction either way, since each culture gets its own line regardless of overlap.
 
 ---
 
