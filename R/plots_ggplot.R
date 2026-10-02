@@ -18,12 +18,11 @@
 #' @param label Optional label (e.g. "Bell Beaker, 2500-2200 BCE") added as
 #'   subtitle.
 #' @return A [ggplot2::ggplot] object.
-#' @export
 #' @examples
-#' \dontrun{
-#' pres <- calculate_prestige(my_df)
-#' plot_prestige(pres)
-#' }
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' plot_prestige(pres, case = "Example site")
+#' @export
 plot_prestige <- function(prestige_df, method = "bayesian",
                            case = NULL, dates = NULL,
                            title = NULL, label = NULL) {
@@ -196,14 +195,12 @@ plot_prestige <- function(prestige_df, method = "bayesian",
 #'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
 #'   `is_adult_grave` column (age separation was not used).
 #' @return A [ggplot2::ggplot] object.
-#' @export
 #' @examples
-#' \dontrun{
+#' df   <- read_count_data(example_data_path())
 #' pres <- calculate_prestige(df)
 #' ineq <- inequality_summary(pres)
-#' plot_lorenz(pres, ineq, case = "Baden Budakalasz",
-#'             dates = format_dates(-3360, -2890))
-#' }
+#' plot_lorenz(pres, ineq, case = "Example site", dates = format_dates(-2800, -2500))
+#' @export
 plot_lorenz <- function(prestige_df, ineq_summary = NULL,
                          case = NULL, dates = NULL,
                          method = "Bayesian (empirical)",
@@ -212,27 +209,16 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
   ld <- lorenz_data(prestige_df, graves = graves)
 
   # Build title exactly as the app does
-  graves_label <- switch(graves,
-    adults    = " (adults only)",
-    all       = " (all graves)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(graves)
   ttl <- paste0("Lorenz Curve and Ginis", graves_label)
   if (!is.null(case) && nchar(case) > 0)
-    ttl <- paste(ttl, "\u2014", case)
+    ttl <- paste(ttl, .sym("dash"), case)
   if (!is.null(dates) && nchar(dates) > 0)
-    ttl <- paste(ttl, "\u2014", dates)
+    ttl <- paste(ttl, .sym("dash"), dates)
 
-  colours <- c(
-    "combined (prestige + \u221Acounts)" = "#2ca25f",
-    "prestige only"                       = "#2166ac",
-    "TOT + 1"                             = "#d6604d"
-  )
-  ltypes <- c(
-    "combined (prestige + \u221Acounts)" = "solid",
-    "prestige only"                       = "dashed",
-    "TOT + 1"                             = "dashed"
-  )
+  lev     <- levels(ld$measure)          # combined / prestige only / TOT + 1
+  colours <- stats::setNames(c("#2ca25f", "#2166ac", "#d6604d"), lev)
+  ltypes  <- stats::setNames(c("solid", "dashed", "dashed"), lev)
 
   p <- ggplot2::ggplot(ld, ggplot2::aes(x = cum_pop, y = cum_wealth,
                                           colour = measure, linetype = measure)) +
@@ -275,7 +261,7 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
         hjust = 0, vjust = 1, size = 3.5,
         colour = "#2ca25f", fontface = "bold") +
       ggplot2::annotate("text", x = 0.02, y = y0 - dy,
-        label = paste0("G (prestige+\u221Acount): ",
+        label = paste0(paste0("G (prestige+", .sym("sqrt_count"), "): "),
                        round(g["gini"], 2), ci_str(g)),
         hjust = 0, vjust = 1, size = 3.2, colour = "#2ca25f") +
       ggplot2::annotate("text", x = 0.02, y = y0 - 2 * dy,
@@ -320,13 +306,18 @@ plot_lorenz <- function(prestige_df, ineq_summary = NULL,
 #' Plot wealth density curves for three wealth measures
 #'
 #' @param prestige_df Output from [calculate_prestige()].
-#' @param graves Which graves to include: `"all"` (default, matches app),
-#'   `"adults"`, or `"subadults"`.  The choice is shown in the plot title.
+#' @param graves Which graves to include: `"adults"` (default), `"all"`,
+#'   or `"subadults"`.  The choice is shown in the plot title.
 #' @param case Character. Culture or period name added to the title.
 #' @param dates Character. Date range string added to the title.
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' plot_density(pres)
+#' plot_density(pres, graves = "all", case = "Example site")
 #' @export
-plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
+plot_density <- function(prestige_df, graves = c("adults", "all", "subadults"),
                           case = NULL, dates = NULL) {
   graves  <- match.arg(graves)
   has_age <- "is_adult_grave" %in% names(prestige_df)
@@ -340,22 +331,18 @@ plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
   }
 
   # Title: coloured HTML via ggtext, matching the app's colour scheme
-  graves_label <- switch(graves,
-    all       = " (all graves)",
-    adults    = " (adults only)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(graves)
   ttl <- paste0(
     "Density curves: ",
     "<span style='color:#2166ac'>**Prestige**</span>, ",
-    "<span style='color:#2ca25f'>+\u221Acount</span>, ",
+    paste0("<span style='color:#2ca25f'>+", .sym("sqrt_count"), "</span>, "),
     "<span style='color:#d6604d'>TOT+1</span>",
     graves_label
   )
   if (!is.null(case) && nchar(case) > 0)
-    ttl <- paste(ttl, "\u2014", case)
+    ttl <- paste(ttl, .sym("dash"), case)
   if (!is.null(dates) && nchar(dates) > 0)
-    ttl <- paste(ttl, "\u2014", dates)
+    ttl <- paste(ttl, .sym("dash"), dates)
 
   max_tot      <- max(df$raw_TOT + 1,   na.rm = TRUE)
 
@@ -386,6 +373,10 @@ plot_density <- function(prestige_df, graves = c("all", "adults", "subadults"),
 #'   behaviour), `"all"`, or `"subadults"`. Ignored if `prestige_df` has no
 #'   `is_adult_grave` column (age separation was not used).
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' plot_decile(pres, case = "Example site")
 #' @export
 plot_decile <- function(prestige_df, case = NULL, dates = NULL,
                          graves = c("adults", "all", "subadults")) {
@@ -402,11 +393,7 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL,
   }
   max_w <- max(max_subset, na.rm = TRUE)
 
-  graves_label <- switch(graves,
-    adults    = " (adults only)",
-    all       = " (all graves)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(graves)
 
   x_parts <- c()
   if (!is.null(case)  && nchar(case)  > 0) x_parts <- c(x_parts, case)
@@ -429,6 +416,35 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL,
 }
 
 
+#' Get the bias simulation result from a plot function's input
+#'
+#' Accepts a `"qw_bias"` object (from [simulate_category_bias()]) or a
+#' `"qw_group"` object (one entry of `count_pipeline()$by_group`, whose
+#' `$bias` is used). Anything else -- in particular a whole
+#' `count_pipeline()` result -- stops with a message saying what to pass
+#' instead. Unlabelled lists are accepted only if they look like bias
+#' results made before these classes were introduced.
+#' @noRd
+.as_bias_result <- function(x) {
+  if (inherits(x, "qw_bias")) return(x)
+  if (inherits(x, "qw_group")) {
+    if (is.null(x$bias))
+      stop(sprintf("Group '%s' has no bias simulation. Re-run count_pipeline(..., run_bias_sim = TRUE).",
+                   x$case))
+    return(x$bias)
+  }
+  if (inherits(x, "qw_pipeline")) {
+    stop("Expected a bias simulation result or one group from `$by_group`, ",
+         "but got the whole count_pipeline() result. Select one group first, e.g. ",
+         sprintf("x$by_group[[\"%s\"]].", names(x$by_group)[1]))
+  }
+  # Results saved before the "qw_bias" class existed
+  if (is.list(x) && !is.null(x$ginis_split_TOT)) return(x)
+  stop("Expected output of simulate_category_bias() or one group from ",
+       "count_pipeline()$by_group.")
+}
+
+
 #' Plot category bias simulation results (2x2 faceted jitter plot)
 #'
 #' The grave subset (`"adults"`, `"all"`, or `"subadults"`) is fixed when you
@@ -437,17 +453,28 @@ plot_decile <- function(prestige_df, case = NULL, dates = NULL,
 #' adults vs subadults, run [simulate_category_bias()] twice with different
 #' `graves` values and plot each result separately.
 #'
-#' @param bias_result Output from [simulate_category_bias()].
-#' @param case Character. Case/period label for the title.
+#' @param bias_result Output from [simulate_category_bias()], or one group
+#'   from `count_pipeline()$by_group` (its `$bias` is used).
+#' @param case Character. Case/period label for the title. When
+#'   `bias_result` is a pipeline group and `case` is NULL, the group's label
+#'   is used.
 #' @param dates Character. Date range string.
 #' @param .title_override Internal use only. If supplied, replaces the
 #'   auto-generated title entirely (bypassing `case`/`dates`/grave-subset
 #'   labelling). Not currently called anywhere in the package; exposed as a
 #'   hook for callers that need full control over the title.
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' set.seed(1)
+#' bias <- simulate_category_bias(df, pres, n_sims = 50)
+#' plot_bias(bias, case = "Example site", dates = format_dates(-2800, -2500))
 #' @export
 plot_bias <- function(bias_result, case = NULL, dates = NULL,
                        .title_override = NULL) {
+  if (is.null(case) && inherits(bias_result, "qw_group")) case <- bias_result$case
+  bias_result <- .as_bias_result(bias_result)
   n_sims <- bias_result$n_sims
 
   hist_data <- data.frame(
@@ -457,20 +484,20 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
              bias_result$ginis_split_prestige_sqrt, bias_result$ginis_lump_prestige_sqrt),
     Columns = rep(c(bias_result$total_splits, bias_result$total_lumped_cols), 4),
     Direction = factor(rep(c("Split","Lump"), times = 4, each = n_sims), levels = c("Lump","Split")),
-    Method = factor(rep(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
+    Method = factor(rep(c("TOT+1",paste0("TOT+1+", .sym("sqrt_count")),"Mean Prestige+1",paste0("Mean Prestige+1+", .sym("sqrt_count"))),
                         each = n_sims * 2),
-                    levels = c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"))
+                    levels = c("TOT+1",paste0("TOT+1+", .sym("sqrt_count")),"Mean Prestige+1",paste0("Mean Prestige+1+", .sym("sqrt_count"))))
   )
 
   orig_lines <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
+    Method = factor(c("TOT+1",paste0("TOT+1+", .sym("sqrt_count")),"Mean Prestige+1",paste0("Mean Prestige+1+", .sym("sqrt_count"))),
                     levels = levels(hist_data$Method)),
     orig_gini = c(bias_result$orig_gini_TOT, bias_result$orig_gini_TOT_sqrt,
                   bias_result$orig_gini_prestige, bias_result$orig_gini_prestige_sqrt)
   )
 
   iqr_per_method <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
+    Method = factor(c("TOT+1",paste0("TOT+1+", .sym("sqrt_count")),"Mean Prestige+1",paste0("Mean Prestige+1+", .sym("sqrt_count"))),
                     levels = levels(hist_data$Method)),
     iqr_low = c(
       stats::quantile(c(bias_result$ginis_split_TOT,           bias_result$ginis_lump_TOT),           0.25),
@@ -507,26 +534,22 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 
   subtitle_md <- paste0(
     "<span style='color:gray40'>", iter_info, "</span><br>",
-    "<span style='color:coral'><b>Lump:</b> ", n_orig, " cols \u2192 ", lump_min, "-", lump_max,
+    "<span style='color:coral'><b>Lump:</b> ", n_orig, paste0(" cols ", .sym("arrow"), " "), lump_min, "-", lump_max,
     " cols (", bias_result$n_lump_groups, " groups)<br>Matched: ", matched_text, "</span>"
   )
   caption_md <- paste0(
-    "<span style='color:steelblue'><b>Split:</b> ", n_orig, " cols \u2192 ",
+    "<span style='color:steelblue'><b>Split:</b> ", n_orig, paste0(" cols ", .sym("arrow"), " "),
     split_min, "-", split_max, " cols<br>", split_eligible_text, "</span>"
   )
 
-  graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = " (all graves)",
-    adults    = " (adults only)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(bias_result$graves_used %||% "adults")
 
   ttl <- if (!is.null(.title_override)) {
     .title_override
   } else {
     t <- paste0("Category Bias Simulation", graves_label)
-    if (!is.null(case)  && nchar(case)  > 0) t <- paste(t, "\u2014", case)
-    if (!is.null(dates) && nchar(dates) > 0) t <- paste(t, "\u2014", dates)
+    if (!is.null(case)  && nchar(case)  > 0) t <- paste(t, .sym("dash"), case)
+    if (!is.null(dates) && nchar(dates) > 0) t <- paste(t, .sym("dash"), dates)
     t
   }
 
@@ -548,7 +571,7 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
   )
 
   facet_labels <- data.frame(
-    Method = factor(c("TOT+1","TOT+1+\u221Acount","Mean Prestige+1","Mean Prestige+1+\u221Acount"),
+    Method = factor(c("TOT+1",paste0("TOT+1+", .sym("sqrt_count")),"Mean Prestige+1",paste0("Mean Prestige+1+", .sym("sqrt_count"))),
                     levels = levels(hist_data$Method)),
     label = paste0(
       "IQR: [", round(iqr_per_method$iqr_low, 3), "-", round(iqr_per_method$iqr_high, 3), "]\n",
@@ -600,6 +623,144 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 }
 
 
+#' Category bias simulation results for every group (one measure)
+#'
+#' Multi-group version of [plot_bias()]: one panel per group of a
+#' [count_pipeline()] result, showing the simulated Gini values for a single
+#' wealth measure. Points are the split (blue) and lump (coral) simulations,
+#' the black line is the observed Gini, and the grey dashed lines mark the
+#' interquartile range (middle 50%) of all simulations. The text in each
+#' panel gives that IQR, the observed Gini, and how many columns the split
+#' and lump scenarios produced.
+#'
+#' The x-axis (Gini, 0-1) is shared by all panels, so the spread caused by
+#' category-recording decisions can be compared directly between groups.
+#'
+#' @param pipeline_result Output of [count_pipeline()] run with
+#'   `run_bias_sim = TRUE`.
+#' @param measure Which wealth measure to show: `"combined"` (default;
+#'   prestige + sqrt-count bonus), `"prestige"` (prestige only), `"tot"`
+#'   (TOT + 1) or `"tot_sqrt"` (TOT + 1 + sqrt-count bonus).
+#' @param groups Optional character vector of group names (keys of
+#'   `pipeline_result$by_group`) to include, in plotting order. Default NULL
+#'   plots all groups in pipeline order.
+#' @param ncol Integer. Number of panel columns (default 1, so the Gini
+#'   axes line up vertically).
+#' @return A [ggplot2::ggplot] object.
+#' @examples
+#' ph  <- read_count_data(example_data_path("phases"))
+#' res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+#'                       id_col = "Grave_ID", date_col = "date_BCE",
+#'                       run_bias_sim = TRUE, n_bias_sims = 20, progress = FALSE)
+#' plot_bias_groups(res)
+#' plot_bias_groups(res, measure = "tot")
+#' @export
+plot_bias_groups <- function(pipeline_result,
+                             measure = c("combined", "prestige", "tot", "tot_sqrt"),
+                             groups = NULL, ncol = 1) {
+  measure <- match.arg(measure)
+  if (!inherits(pipeline_result, "qw_pipeline"))
+    stop("pipeline_result must be the output of count_pipeline(). ",
+         "For a single group or bias result, use plot_bias().")
+
+  by_group <- pipeline_result$by_group
+  if (!is.null(groups)) {
+    unknown <- setdiff(groups, names(by_group))
+    if (length(unknown) > 0)
+      stop("Unknown group(s): ", paste(unknown, collapse = ", "),
+           ". Available: ", paste(names(by_group), collapse = ", "))
+    by_group <- by_group[groups]
+  }
+
+  has_bias <- vapply(by_group, function(g) !is.null(g$bias), logical(1))
+  if (!any(has_bias))
+    stop("No group has a bias simulation. Re-run count_pipeline(..., run_bias_sim = TRUE).")
+  if (!all(has_bias))
+    message("Skipping group(s) without a bias simulation: ",
+            paste(names(by_group)[!has_bias], collapse = ", "))
+  by_group <- by_group[has_bias]
+
+  suffix <- switch(measure, combined = "prestige_sqrt", prestige = "prestige",
+                   tot = "TOT", tot_sqrt = "TOT_sqrt")
+  measure_label <- switch(measure,
+    combined = paste0("Mean Prestige+1+", .sym("sqrt_count")),
+    prestige = "Mean Prestige+1",
+    tot      = "TOT+1",
+    tot_sqrt = paste0("TOT+1+", .sym("sqrt_count"))
+  )
+
+  pts <- do.call(rbind, lapply(names(by_group), function(cs) {
+    b <- by_group[[cs]]$bias
+    split <- b[[paste0("ginis_split_", suffix)]]
+    lump  <- b[[paste0("ginis_lump_",  suffix)]]
+    data.frame(case = cs, Gini = c(split, lump),
+               Direction = rep(c("Split", "Lump"), c(length(split), length(lump))))
+  }))
+
+  per_group <- do.call(rbind, lapply(names(by_group), function(cs) {
+    b   <- by_group[[cs]]$bias
+    all <- c(b[[paste0("ginis_split_", suffix)]], b[[paste0("ginis_lump_", suffix)]])
+    q   <- stats::quantile(all, c(0.25, 0.75), na.rm = TRUE)
+    og  <- b[[paste0("orig_gini_", suffix)]]
+    data.frame(
+      case = cs, orig_gini = og, iqr_low = q[1], iqr_high = q[2],
+      label = paste0(
+        "Observed: ", round(og, 3), " | IQR: [", round(q[1], 3), "-", round(q[2], 3), "]\n",
+        "Split: ", b$n_original_cols, paste0(" ", .sym("arrow"), " "), min(b$total_splits), "-",
+        max(b$total_splits), " cols | Lump: ", b$n_original_cols, paste0(" ", .sym("arrow"), " "),
+        min(b$total_lumped_cols), "-", max(b$total_lumped_cols), " cols"
+      ),
+      x_pos = 0.01, y_pos = -0.42, row.names = NULL
+    )
+  }))
+
+  pts$case       <- factor(pts$case, levels = names(by_group))
+  pts$Direction  <- factor(pts$Direction, levels = c("Lump", "Split"))
+  per_group$case <- factor(per_group$case, levels = names(by_group))
+
+  graves <- unique(vapply(by_group, function(g) g$bias$graves_used %||% "adults",
+                          character(1)))
+  graves_label <- if (length(graves) == 1) {
+    .age_label(graves)
+  } else ""
+  n_sims <- unique(vapply(by_group, function(g) as.numeric(g$bias$n_sims), numeric(1)))
+
+  ggplot2::ggplot(pts, ggplot2::aes(x = Gini, y = 0, colour = Direction)) +
+    ggplot2::geom_jitter(width = 0, height = 0.3, alpha = 0.5, size = 1.3) +
+    ggplot2::geom_vline(data = per_group, ggplot2::aes(xintercept = orig_gini),
+                        colour = "black", linewidth = 1) +
+    ggplot2::geom_vline(data = per_group, ggplot2::aes(xintercept = iqr_low),
+                        colour = "darkgray", linetype = "dashed", linewidth = 0.7) +
+    ggplot2::geom_vline(data = per_group, ggplot2::aes(xintercept = iqr_high),
+                        colour = "darkgray", linetype = "dashed", linewidth = 0.7) +
+    ggplot2::geom_text(data = per_group,
+                       ggplot2::aes(x = x_pos, y = y_pos, label = label),
+                       inherit.aes = FALSE, hjust = 0, vjust = 0,
+                       size = 2.5, colour = "gray40", lineheight = 0.9) +
+    ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
+    ggplot2::facet_wrap(~ case, ncol = ncol) +
+    ggplot2::scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+    ggplot2::scale_y_continuous(breaks = NULL) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(-0.5, 0.5)) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      strip.text         = ggplot2::element_text(size = 10, face = "bold"),
+      plot.title         = ggplot2::element_text(size = 13, face = "bold", hjust = 0.5),
+      plot.subtitle      = ggplot2::element_text(size = 9, hjust = 0.5, colour = "gray40"),
+      legend.position    = "bottom",
+      axis.text.y        = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.minor.y = ggplot2::element_blank()
+    ) +
+    ggplot2::labs(
+      title = paste0("Category Bias Simulation", graves_label, paste0(" ", .sym("dash"), " "), measure_label),
+      subtitle = paste0(paste(n_sims, collapse = "/"), " iterations per group | ",
+                        "Black = observed Gini | Gray dashed = IQR (middle 50%)"),
+      x = "Gini", y = NULL, colour = "Direction"
+    )
+}
+
+
 #' Plot wealth-score density curves across category bias simulations
 #'
 #' [plot_bias()] summarises each simulation as a single Gini value. This
@@ -625,36 +786,41 @@ plot_bias <- function(bias_result, case = NULL, dates = NULL,
 #' comparison against the simulated split/lump envelope.
 #'
 #' @param bias_result Output from [simulate_category_bias()] run with
-#'   `store_wealth = TRUE`.
+#'   `store_wealth = TRUE`, or one group from `count_pipeline()$by_group`
+#'   (its `$bias` is used).
 #' @param measure Which wealth measure(s) to show: `"all"` (default, facets
 #'   across all four measures used in [plot_bias()]), `"combined"`
 #'   (prestige + sqrt-count bonus -- the main wealth measure), `"prestige"`
 #'   (prestige only), or `"tot"` (TOT + 1).
-#' @param case Character. Case label added to the title.
+#' @param case Character. Case label added to the title. When
+#'   `bias_result` is a pipeline group and `case` is NULL, the group's label
+#'   is used.
 #' @param dates Character. Date range string added to the title.
 #' @param alpha Numeric. Transparency of each simulation's density line
 #'   (default 0.12). Lower values make the overall envelope easier to read
 #'   when `n_sims` is large.
 #' @return A [ggplot2::ggplot] object.
-#' @export
 #' @examples
-#' \dontrun{
-#' df    <- read_count_data(example_data_path())
-#' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
-#' plot_bias_wealth_density(bias_w)
-#' plot_bias_wealth_density(bias_w, measure = "combined")
-#' }
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' set.seed(1)
+#' bias <- simulate_category_bias(df, pres, n_sims = 30)
+#' plot_bias_wealth_density(bias)
+#' plot_bias_wealth_density(bias, measure = "combined")
+#' @export
 plot_bias_wealth_density <- function(bias_result,
                                       measure = c("all", "combined", "prestige", "tot"),
                                       case = NULL, dates = NULL, alpha = 0.12) {
   measure <- match.arg(measure)
+  if (is.null(case) && inherits(bias_result, "qw_group")) case <- bias_result$case
+  bias_result <- .as_bias_result(bias_result)
   if (is.null(bias_result$wealth_scores)) {
     stop("bias_result has no stored wealth scores. Re-run simulate_category_bias(",
          "..., store_wealth = TRUE) to enable this plot.")
   }
 
-  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+\u221Acount",
-                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+\u221Acount")
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = paste0("TOT+1+", .sym("sqrt_count")),
+                 prestige = "Mean Prestige+1", prestige_sqrt = paste0("Mean Prestige+1+", .sym("sqrt_count")))
 
   build_long <- function(lst, direction) {
     do.call(rbind, lapply(seq_along(lst), function(i) {
@@ -687,8 +853,8 @@ plot_bias_wealth_density <- function(bias_result,
     long <- tidyr::pivot_longer(wide, cols = c("TOT", "TOT_sqrt", "prestige", "prestige_sqrt"),
                                  names_to = "Method", values_to = "value")
     long$Method <- factor(label_map[long$Method],
-                           levels = c("TOT+1", "TOT+1+\u221Acount",
-                                      "Mean Prestige+1", "Mean Prestige+1+\u221Acount"))
+                           levels = c("TOT+1", paste0("TOT+1+", .sym("sqrt_count")),
+                                      "Mean Prestige+1", paste0("Mean Prestige+1+", .sym("sqrt_count"))))
     facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2, scales = "free")
     x_lab <- "Wealth value"
 
@@ -703,7 +869,7 @@ plot_bias_wealth_density <- function(bias_result,
     long <- data.frame(sim_id = wide$sim_id, direction = wide$direction, value = wide[[col]])
     facet_layer <- NULL
     x_lab <- switch(measure,
-      combined = "Combined wealth (prestige + \u221Acount)",
+      combined = paste0("Combined wealth (prestige + ", .sym("sqrt_count"), ")"),
       prestige = "Prestige only",
       tot      = "TOT + 1"
     )
@@ -715,15 +881,11 @@ plot_bias_wealth_density <- function(bias_result,
 
   long$direction <- factor(long$direction, levels = c("Lump", "Split"))
 
-  graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = " (all graves)",
-    adults    = " (adults only)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(bias_result$graves_used %||% "adults")
 
   ttl <- paste0("Wealth distribution across category bias simulations", graves_label)
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, .sym("dash"), case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, .sym("dash"), dates)
 
   p <- ggplot2::ggplot(long, ggplot2::aes(x = value, group = sim_id, colour = direction)) +
     ggplot2::stat_density(geom = "line", position = "identity",
@@ -749,6 +911,177 @@ plot_bias_wealth_density <- function(bias_result,
   }
 
   if (!is.null(facet_layer)) p <- p + facet_layer
+  p
+}
+
+
+#' Wealth-score density curves across bias simulations, for every group
+#'
+#' Multi-group version of [plot_bias_wealth_density()]: one panel per group
+#' of a [count_pipeline()] result, showing a single wealth measure. Each
+#' panel has one faint density line per simulation, coloured by whether
+#' categories were split or lumped, plus the observed distribution as a bold
+#' black line. The point is to compare *how strongly* category-recording
+#' decisions affect each group's distribution (how far the split/lump lines
+#' fan out around the observed one), not the wealth values themselves.
+#'
+#' By default, axes are free per panel and show each group's own wealth
+#' values. Prestige values are calculated separately within each group, so
+#' a given wealth value does not mean the same thing in two panels.
+#' With `relative = TRUE`, every group's scores (observed and simulated) are
+#' divided by that group's observed mean wealth, so 1 = "average grave in
+#' this group" in every panel and the axes can be shared. Dividing by the
+#' *observed* mean (not each simulation's own mean) keeps any shift of the
+#' simulated distributions caused by splitting/lumping visible.
+#'
+#' Note that density heights are in units of 1 / (x-axis units): with raw
+#' values and a fixed y-axis, groups with a narrow wealth range get taller
+#' curves than groups with a wide range, even if the shapes are identical.
+#'
+#' Requires `count_pipeline(..., run_bias_sim = TRUE)` with
+#' `store_wealth = TRUE` (the default). Groups without stored wealth scores
+#' are skipped with a message.
+#'
+#' @param pipeline_result Output of [count_pipeline()].
+#' @param measure Which wealth measure to show: `"combined"` (default;
+#'   prestige + sqrt-count bonus), `"prestige"` (prestige only), or `"tot"`
+#'   (TOT + 1).
+#' @param groups Optional character vector of group names (keys of
+#'   `pipeline_result$by_group`) to include, in the order they should be
+#'   plotted. Default NULL plots all groups in pipeline order.
+#' @param alpha Numeric. Transparency of each simulation's density line
+#'   (default 0.12).
+#' @param relative Logical. If TRUE, divide each group's wealth scores by
+#'   the group's observed mean wealth before plotting (default FALSE).
+#' @param scales Axis scaling across panels, passed to
+#'   [ggplot2::facet_wrap()]: `"free"`, `"free_x"` (fixed y-axis), `"free_y"`
+#'   (fixed x-axis) or `"fixed"`. Default NULL means `"free"` for raw values
+#'   and `"fixed"` when `relative = TRUE`.
+#' @param ncol Integer. Number of panel columns (default NULL lets ggplot2
+#'   choose).
+#' @return A [ggplot2::ggplot] object.
+#' @examples
+#' ph  <- read_count_data(example_data_path("phases"))
+#' res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+#'                       id_col = "Grave_ID", date_col = "date_BCE",
+#'                       run_bias_sim = TRUE, n_bias_sims = 20, progress = FALSE)
+#' plot_bias_wealth_density_groups(res)
+#' plot_bias_wealth_density_groups(res, groups = c("A: A1", "B: B1"))
+#' plot_bias_wealth_density_groups(res, relative = TRUE)   # shared relative scale
+#' @export
+plot_bias_wealth_density_groups <- function(pipeline_result,
+                                             measure = c("combined", "prestige", "tot"),
+                                             groups = NULL, alpha = 0.12,
+                                             relative = FALSE, scales = NULL,
+                                             ncol = NULL) {
+  measure <- match.arg(measure)
+  if (is.null(scales)) scales <- if (relative) "fixed" else "free"
+  scales <- match.arg(scales, c("free", "free_x", "free_y", "fixed"))
+  if (!inherits(pipeline_result, "qw_pipeline"))
+    stop("pipeline_result must be the output of count_pipeline(). ",
+         "For a single group or bias result, use plot_bias_wealth_density().")
+
+  by_group <- pipeline_result$by_group
+  if (!is.null(groups)) {
+    unknown <- setdiff(groups, names(by_group))
+    if (length(unknown) > 0)
+      stop("Unknown group(s): ", paste(unknown, collapse = ", "),
+           ". Available: ", paste(names(by_group), collapse = ", "))
+    by_group <- by_group[groups]
+  }
+
+  has_ws <- vapply(by_group, function(g) !is.null(g$bias$wealth_scores), logical(1))
+  if (!any(has_ws))
+    stop("No group has stored bias wealth scores. Re-run count_pipeline(..., ",
+         "run_bias_sim = TRUE, store_wealth = TRUE).")
+  if (!all(has_ws))
+    message("Skipping group(s) without stored bias wealth scores: ",
+            paste(names(by_group)[!has_ws], collapse = ", "))
+  by_group <- by_group[has_ws]
+
+  col <- switch(measure, combined = "prestige_sqrt", prestige = "prestige", tot = "TOT")
+
+  # One row per grave per simulation per group
+  sims <- do.call(rbind, lapply(names(by_group), function(cs) {
+    ws <- by_group[[cs]]$bias$wealth_scores
+    one_direction <- function(lst, direction) {
+      do.call(rbind, lapply(seq_along(lst), function(i) {
+        data.frame(case = cs, sim_id = paste(cs, direction, i),
+                   direction = direction, value = lst[[i]][[col]])
+      }))
+    }
+    rbind(one_direction(ws$split, "Split"), one_direction(ws$lump, "Lump"))
+  }))
+  orig <- do.call(rbind, lapply(names(by_group), function(cs) {
+    o <- by_group[[cs]]$bias$wealth_scores$orig
+    if (is.null(o)) return(NULL)
+    data.frame(case = cs, value = o[[col]])
+  }))
+
+  if (relative) {
+    for (cs in names(by_group)) {
+      ref <- if (!is.null(orig) && any(orig$case == cs)) {
+        mean(orig$value[orig$case == cs], na.rm = TRUE)
+      } else {
+        message("Group '", cs, "' has no stored observed distribution; ",
+                "dividing by the mean of its simulated values instead.")
+        mean(sims$value[sims$case == cs], na.rm = TRUE)
+      }
+      sims$value[sims$case == cs] <- sims$value[sims$case == cs] / ref
+      if (!is.null(orig))
+        orig$value[orig$case == cs] <- orig$value[orig$case == cs] / ref
+    }
+  }
+
+  sims$case      <- factor(sims$case, levels = names(by_group))
+  sims$direction <- factor(sims$direction, levels = c("Lump", "Split"))
+  if (!is.null(orig)) orig$case <- factor(orig$case, levels = names(by_group))
+
+  graves <- unique(vapply(by_group, function(g) g$bias$graves_used %||% "adults",
+                          character(1)))
+  graves_label <- if (length(graves) == 1) {
+    .age_label(graves)
+  } else ""
+  x_lab <- switch(measure,
+    combined = paste0("Combined wealth (prestige + ", .sym("sqrt_count"), ")"),
+    prestige = "Prestige only",
+    tot      = "TOT + 1"
+  )
+  if (relative) x_lab <- paste0(x_lab, ", relative to group mean (1 = mean)")
+  sub <- switch(scales,
+    free   = "Axes differ per panel",
+    free_x = "x-axis differs per panel; y-axis shared",
+    free_y = "x-axis shared; y-axis differs per panel",
+    fixed  = "Axes shared across panels"
+  )
+  if (!is.null(orig)) sub <- paste0("Black line = observed distribution. ", sub)
+
+  p <- ggplot2::ggplot(sims, ggplot2::aes(x = value, group = sim_id, colour = direction)) +
+    ggplot2::stat_density(geom = "line", position = "identity",
+                          alpha = alpha, linewidth = 0.4) +
+    ggplot2::scale_colour_manual(values = c(Split = "steelblue", Lump = "coral")) +
+    ggplot2::guides(colour = ggplot2::guide_legend(
+      override.aes = list(linewidth = 3, alpha = 1)
+    )) +
+    ggplot2::facet_wrap(~ case, scales = scales, ncol = ncol) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      legend.position = "bottom",
+      strip.text = ggplot2::element_text(size = 10, face = "bold"),
+      plot.title = ggplot2::element_text(size = 13, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5)
+    ) +
+    ggplot2::labs(
+      title = paste0("Wealth distribution across category bias simulations", graves_label),
+      subtitle = sub, x = x_lab, y = "Density", colour = "Direction"
+    )
+
+  if (!is.null(orig)) {
+    p <- p + ggplot2::stat_density(
+      data = orig, ggplot2::aes(x = value), inherit.aes = FALSE,
+      geom = "line", position = "identity", colour = "black", linewidth = 1
+    )
+  }
   p
 }
 
@@ -780,36 +1113,40 @@ plot_bias_wealth_density <- function(bias_result,
 #' is the line of perfect equality, as usual for Lorenz curves.
 #'
 #' @param bias_result Output from [simulate_category_bias()] run with
-#'   `store_wealth = TRUE`.
+#'   `store_wealth = TRUE`, or one group from `count_pipeline()$by_group`
+#'   (its `$bias` is used).
 #' @param measure Which wealth measure(s) to show: `"all"` (default, facets
 #'   across all four measures used in [plot_bias()]), `"combined"`
 #'   (prestige + sqrt-count bonus -- the main wealth measure), `"prestige"`
 #'   (prestige only), or `"tot"` (TOT + 1).
-#' @param case Character. Case label added to the title.
+#' @param case Character. Case label added to the title. When
+#'   `bias_result` is a pipeline group and `case` is NULL, the group's label
+#'   is used.
 #' @param dates Character. Date range string added to the title.
 #' @param alpha Numeric. Transparency of each simulation's Lorenz line
 #'   (default 0.12). Lower values make the overall envelope easier to read
 #'   when `n_sims` is large.
 #' @return A [ggplot2::ggplot] object.
-#' @export
 #' @examples
-#' \dontrun{
-#' df    <- read_count_data(example_data_path())
-#' bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
-#' plot_bias_wealth_lorenz(bias_w)
-#' plot_bias_wealth_lorenz(bias_w, measure = "combined")
-#' }
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' set.seed(1)
+#' bias <- simulate_category_bias(df, pres, n_sims = 30)
+#' plot_bias_wealth_lorenz(bias, measure = "combined")
+#' @export
 plot_bias_wealth_lorenz <- function(bias_result,
                                      measure = c("all", "combined", "prestige", "tot"),
                                      case = NULL, dates = NULL, alpha = 0.12) {
   measure <- match.arg(measure)
+  if (is.null(case) && inherits(bias_result, "qw_group")) case <- bias_result$case
+  bias_result <- .as_bias_result(bias_result)
   if (is.null(bias_result$wealth_scores)) {
     stop("bias_result has no stored wealth scores. Re-run simulate_category_bias(",
          "..., store_wealth = TRUE) to enable this plot.")
   }
 
-  label_map <- c(TOT = "TOT+1", TOT_sqrt = "TOT+1+\u221Acount",
-                 prestige = "Mean Prestige+1", prestige_sqrt = "Mean Prestige+1+\u221Acount")
+  label_map <- c(TOT = "TOT+1", TOT_sqrt = paste0("TOT+1+", .sym("sqrt_count")),
+                 prestige = "Mean Prestige+1", prestige_sqrt = paste0("Mean Prestige+1+", .sym("sqrt_count")))
 
   .lorenz_coords <- function(x) {
     x  <- sort(x[!is.na(x)])
@@ -853,8 +1190,8 @@ plot_bias_wealth_lorenz <- function(bias_result,
 
   if (measure == "all") {
     long$Method <- factor(label_map[long$Method],
-                           levels = c("TOT+1", "TOT+1+\u221Acount",
-                                      "Mean Prestige+1", "Mean Prestige+1+\u221Acount"))
+                           levels = c("TOT+1", paste0("TOT+1+", .sym("sqrt_count")),
+                                      "Mean Prestige+1", paste0("Mean Prestige+1+", .sym("sqrt_count"))))
     facet_layer <- ggplot2::facet_wrap(~ Method, ncol = 2)
     if (has_orig) orig_long$Method <- factor(label_map[orig_long$Method], levels = levels(long$Method))
   } else {
@@ -863,15 +1200,11 @@ plot_bias_wealth_lorenz <- function(bias_result,
 
   long$direction <- factor(long$direction, levels = c("Lump", "Split"))
 
-  graves_label <- switch(bias_result$graves_used %||% "adults",
-    all       = " (all graves)",
-    adults    = " (adults only)",
-    subadults = " (subadults only)"
-  )
+  graves_label <- .age_label(bias_result$graves_used %||% "adults")
 
   ttl <- paste0("Lorenz curves across category bias simulations", graves_label)
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, .sym("dash"), case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, .sym("dash"), dates)
 
   p <- ggplot2::ggplot(long, ggplot2::aes(x = cum_pop, y = cum_wealth,
                                            group = sim_id, colour = direction)) +
@@ -910,6 +1243,9 @@ plot_bias_wealth_lorenz <- function(bias_result,
 #' @param case Character. Case/site/period label.
 #' @param dates Character. Date range string.
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
+#' plot_physical_lorenz(areas, data_type = "House floor area", case = "Example village")
 #' @export
 plot_physical_lorenz <- function(sizes, ineq = NULL, data_type = "Physical measure",
                                   case = NULL, dates = NULL) {
@@ -922,8 +1258,8 @@ plot_physical_lorenz <- function(sizes, ineq = NULL, data_type = "Physical measu
     paste0(" \u00B1", round((g_val["upper"] - g_val["lower"]) / 2, 2)) else ""
 
   ttl <- paste(data_type, "Lorenz Curve")
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, .sym("dash"), case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, .sym("dash"), dates)
 
   ggplot2::ggplot(data.frame(Value = sizes), ggplot2::aes(Value)) +
     gglorenz::stat_lorenz(colour = "purple", geom = "path", linetype = "solid", linewidth = 1) +
@@ -944,13 +1280,16 @@ plot_physical_lorenz <- function(sizes, ineq = NULL, data_type = "Physical measu
 #' @param case Character. Case/site/period label.
 #' @param dates Character. Date range string.
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
+#' plot_physical_density(areas, data_type = "House floor area")
 #' @export
 plot_physical_density <- function(sizes, data_type = "Physical measure",
                                    case = NULL, dates = NULL) {
   sizes <- sizes[!is.na(sizes) & sizes > 0]
   ttl <- paste(data_type, "Distribution")
-  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, "\u2014", case)
-  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, "\u2014", dates)
+  if (!is.null(case)  && nchar(case)  > 0) ttl <- paste(ttl, .sym("dash"), case)
+  if (!is.null(dates) && nchar(dates) > 0) ttl <- paste(ttl, .sym("dash"), dates)
   ggplot2::ggplot(data.frame(Value = sizes), ggplot2::aes(x = Value)) +
     ggplot2::stat_density(geom = "line", colour = "purple", linewidth = 1) +
     ggplot2::geom_vline(xintercept = max(sizes), colour = "purple",
@@ -967,6 +1306,9 @@ plot_physical_density <- function(sizes, data_type = "Physical measure",
 #' @param dates Character. Date range string.
 #' @param unit Character. Unit string (e.g. "m2").
 #' @return A [ggplot2::ggplot] object.
+#' @examples
+#' areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
+#' plot_physical_decile(areas, data_type = "House floor area", unit = "m\u00b2")
 #' @export
 plot_physical_decile <- function(sizes, data_type = "Physical measure",
                                   case = NULL, dates = NULL, unit = "") {
@@ -1004,4 +1346,235 @@ plot_physical_decile <- function(sizes, data_type = "Physical measure",
                    panel.grid.minor.x = ggplot2::element_blank()) +
     ggplot2::labs(title = "Decile distribution", x = NULL,
                   y = "Proportion of total", fill = "Decile")
+}
+
+
+#' Decile wealth distribution for every group of a pipeline result
+#'
+#' Group-wise version of [plot_decile()]: one stacked bar per group of a
+#' [count_pipeline()] result, side by side, so the share of total wealth
+#' held by each decile can be compared between groups (e.g. phases) and
+#' datasets. The share scale (0-1) is unit-free, so bars from different
+#' datasets are directly comparable. Numbers in the bars are the number of
+#' graves in each decile.
+#'
+#' With fewer than about 30 graves a decile holds only 1-3 graves, and
+#' graves with equal wealth are assigned to neighbouring deciles
+#' arbitrarily ([dplyr::ntile()]), so the bars of small groups are
+#' unstable; the n under each bar is there to keep that in view.
+#'
+#' @param pipeline_result Output of [count_pipeline()].
+#' @param graves Which graves to use: `"adults"` (default), `"all"` or
+#'   `"subadults"` (see [decile_data()]).
+#' @param groups Optional character vector of group names (keys of
+#'   `pipeline_result$by_group`) to include. Default NULL: all groups.
+#' @param case_order Optional character vector of group labels (e.g. phase
+#'   names) giving the left-to-right order; as in [plot_gini_comparison()].
+#' @param show_counts Logical. Print the number of graves in each decile
+#'   (default TRUE).
+#' @param show_max Logical. Add the richest grave's wealth (combined) to the
+#'   x label (default TRUE), so the shares can be read against how much
+#'   wealth there is. Wealth values are only comparable within a dataset.
+#' @param show_mean Logical. Also add the mean wealth to the x label
+#'   (default FALSE). Mean x n = total wealth, so it rests on all graves,
+#'   not just one.
+#' @param title Optional plot title.
+#' @return A [ggplot2::ggplot] object, one panel per dataset.
+#' @examples
+#' ph  <- read_count_data(example_data_path("phases"))
+#' res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+#'                       id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+#' plot_decile_groups(res)
+#' plot_decile_groups(res, show_counts = FALSE, show_mean = TRUE)
+#' @export
+plot_decile_groups <- function(pipeline_result,
+                               graves      = c("adults", "all", "subadults"),
+                               groups      = NULL,
+                               case_order  = NULL,
+                               show_counts = TRUE,
+                               show_max    = TRUE,
+                               show_mean   = FALSE,
+                               title       = NULL) {
+  graves <- match.arg(graves)
+  if (!inherits(pipeline_result, "qw_pipeline"))
+    stop("pipeline_result must be the output of count_pipeline(). ",
+         "For a single prestige table, use plot_decile().")
+
+  by_group <- pipeline_result$by_group
+  if (!is.null(groups)) {
+    unknown <- setdiff(groups, names(by_group))
+    if (length(unknown) > 0)
+      stop("Unknown group(s): ", paste(unknown, collapse = ", "),
+           ". Available: ", paste(names(by_group), collapse = ", "))
+    by_group <- by_group[groups]
+  }
+
+  rows <- lapply(names(by_group), function(cs) {
+    g  <- by_group[[cs]]
+    pd <- g$prestige_df
+    if (is.null(pd) || nrow(pd) == 0) return(NULL)
+    dd <- tryCatch(decile_data(pd, graves = graves), error = function(e) NULL)
+    if (is.null(dd) || nrow(dd) == 0) return(NULL)
+    n  <- sum(dd$n_in_decile)
+    has_age <- "is_adult_grave" %in% names(pd)
+    w <- if (!has_age || graves == "all") pd$combined_total else
+         if (graves == "adults") pd$combined_total[pd$is_adult_grave %in% TRUE] else
+         pd$combined_total[pd$is_subadult_only %in% TRUE]
+    dd$max_w  <- max(w, na.rm = TRUE)
+    dd$mean_w <- mean(w, na.rm = TRUE)
+    if (n < 10)
+      message("Group '", cs, "' has only ", n, " graves: fewer than 10 deciles.")
+    dd$dataset <- g$dataset %||% "all"
+    dd$case    <- cs
+    dd$group   <- as.character(g$group %||% cs)
+    dd$n       <- n
+    dd
+  })
+  df <- do.call(rbind, Filter(Negate(is.null), rows))
+  if (is.null(df) || nrow(df) == 0)
+    stop("No graves available for graves = '", graves, "'.")
+
+  # x labels "<group>\n(n=..)", ordered by group (case_order), then dataset
+  lv <- .order_cases(df$group, case_order)
+  df <- df[order(match(df$group, lv), df$dataset), , drop = FALSE]
+  df$case_label <- sprintf("%s\n(n=%d)", df$group, as.integer(df$n))
+  if (show_max)  df$case_label <- paste0(df$case_label, "\nmax: ",  signif(df$max_w, 3))
+  if (show_mean) df$case_label <- paste0(df$case_label, "\nmean: ", signif(df$mean_w, 3))
+  df$case_label <- factor(df$case_label, levels = unique(df$case_label))
+
+  graves_label <- .age_label(graves)
+
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = case_label, y = total_wealth,
+                                        fill = wealth_rank)) +
+    ggplot2::geom_col(width = 0.7) +
+    ggplot2::scale_fill_brewer(palette = "Spectral") +
+    ggplot2::scale_y_continuous(limits = c(0, 1.0001), expand = c(0, 0)) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(panel.grid.major.x = ggplot2::element_blank(),
+                   legend.position = "right") +
+    ggplot2::labs(title = paste0(title %||% "Decile distribution by group", graves_label),
+                  x = NULL, y = "Proportion of total wealth", fill = "Decile",
+                  caption = paste(c(
+                    if (show_counts) "Numbers: graves per decile",
+                    if (show_max || show_mean)
+                      "max/mean: combined wealth; comparable within a dataset only"),
+                    collapse = "\n"))
+  if (show_counts)
+    p <- p + ggplot2::geom_text(ggplot2::aes(y = mid_point, label = n_in_decile),
+                                size = 3, colour = "black")
+  if (length(unique(df$dataset)) > 1)
+    p <- p + ggplot2::facet_grid(~ dataset, scales = "free_x", space = "free_x")
+  p
+}
+
+
+#' Heatmap of how often each grave-good type occurs, per group
+#'
+#' For every group of a [count_pipeline()] result, the share of graves that
+#' contain each type (count > 0). Shows *which* types make up the typical
+#' grave, e.g. to check whether a higher number of types per grave in one
+#' dataset comes from the same kinds of finds as in another, or from
+#' categories the other dataset does not record.
+#'
+#' Types are the count columns the pipeline used (after exclusions). Only
+#' the `top_n` most frequent types per dataset are shown (ranked by their
+#' highest share in any group of that dataset). One panel per dataset,
+#' since datasets have different columns.
+#'
+#' @param pipeline_result Output of [count_pipeline()].
+#' @param graves `"adults"` (default), `"all"` or `"subadults"`.
+#' @param top_n Number of types shown per dataset (default 15).
+#' @param groups Optional group names (keys of `pipeline_result$by_group`).
+#' @param case_order Optional group labels giving the column order.
+#' @param show_values Logical. Print the percentage in each cell (default TRUE).
+#' @param x_angle Angle of the group labels on the x-axis (default 45, so
+#'   labels of narrow panels do not overlap; 0 = horizontal).
+#' @param title Optional plot title.
+#' @return A [ggplot2::ggplot] object. The underlying table is attached as
+#'   attribute `"prevalence"` (`attr(p, "prevalence")`).
+#' @examples
+#' ph  <- read_count_data(example_data_path("phases"))
+#' res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+#'                       id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+#' plot_type_prevalence(res)
+#' plot_type_prevalence(res, top_n = 10)
+#' attr(plot_type_prevalence(res), "prevalence")[1:5, ]   # the numbers behind it
+#' @export
+plot_type_prevalence <- function(pipeline_result,
+                                 graves      = c("adults", "all", "subadults"),
+                                 top_n       = 15,
+                                 groups      = NULL,
+                                 case_order  = NULL,
+                                 show_values = TRUE,
+                                 x_angle     = 45,
+                                 title       = NULL) {
+  graves <- match.arg(graves)
+  if (!inherits(pipeline_result, "qw_pipeline"))
+    stop("pipeline_result must be the output of count_pipeline().")
+  by_group <- pipeline_result$by_group
+  if (!is.null(groups)) {
+    unknown <- setdiff(groups, names(by_group))
+    if (length(unknown) > 0)
+      stop("Unknown group(s): ", paste(unknown, collapse = ", "))
+    by_group <- by_group[groups]
+  }
+
+  rows <- lapply(names(by_group), function(cs) {
+    g  <- by_group[[cs]]
+    pd <- g$prestige_df
+    cc <- intersect(g$count_cols, names(pd))
+    if (is.null(pd) || length(cc) == 0) return(NULL)
+    keep <- switch(graves,
+      adults    = if ("is_adult_grave" %in% names(pd)) pd$is_adult_grave else rep(TRUE, nrow(pd)),
+      subadults = if ("is_subadult_only" %in% names(pd)) pd$is_subadult_only else rep(FALSE, nrow(pd)),
+      all       = rep(TRUE, nrow(pd)))
+    pd <- pd[keep %in% TRUE, cc, drop = FALSE]
+    if (nrow(pd) == 0) return(NULL)
+    m <- as.matrix(pd); m[is.na(m)] <- 0
+    data.frame(dataset = g$dataset %||% "all", case = cs,
+               group = as.character(g$group %||% cs), n = nrow(pd),
+               type = cc, share = colMeans(m > 0), stringsAsFactors = FALSE)
+  })
+  df <- do.call(rbind, Filter(Negate(is.null), rows))
+  if (is.null(df) || nrow(df) == 0)
+    stop("No count columns found in prestige_df. Re-run count_pipeline() ",
+         "with the current package version.")
+
+  # top_n types per dataset, ranked by their highest share in any group
+  df <- do.call(rbind, lapply(split(df, df$dataset), function(d) {
+    rank_v <- tapply(d$share, d$type, max)
+    top    <- names(sort(rank_v, decreasing = TRUE))[seq_len(min(top_n, length(rank_v)))]
+    d <- d[d$type %in% top, ]
+    d$type_key <- paste(d$dataset, d$type, sep = "___")
+    d$type_ord <- match(d$type, rev(top))       # most frequent at the top
+    d
+  }))
+  df$type_key <- factor(df$type_key, levels = unique(df$type_key[order(df$dataset, df$type_ord)]))
+
+  lv <- .order_cases(df$group, case_order)
+  df <- df[order(match(df$group, lv), df$dataset), , drop = FALSE]
+  df$case_label <- factor(sprintf("%s\n(n=%d)", df$group, as.integer(df$n)),
+                          levels = unique(sprintf("%s\n(n=%d)", df$group, as.integer(df$n))))
+
+  graves_label <- .age_label(graves)
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = case_label, y = type_key, fill = share)) +
+    ggplot2::geom_tile(colour = "white") +
+    ggplot2::scale_fill_gradient(low = "#f7fbff", high = "#08519c", limits = c(0, 1),
+                                 labels = function(x) paste0(round(100 * x), "%")) +
+    ggplot2::scale_y_discrete(labels = function(x) sub("^.*___", "", x)) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   axis.text.x = if (x_angle == 0) ggplot2::element_text() else
+                     ggplot2::element_text(angle = x_angle, hjust = 1, vjust = 1)) +
+    ggplot2::labs(title = paste0(title %||% "Share of graves containing each type", graves_label),
+                  x = NULL, y = NULL, fill = "Graves\nwith type")
+  if (show_values)
+    p <- p + ggplot2::geom_text(ggplot2::aes(label = round(100 * share),
+                                             colour = share > 0.5),
+                                size = 3, show.legend = FALSE) +
+      ggplot2::scale_colour_manual(values = c(`FALSE` = "black", `TRUE` = "white"))
+  if (length(unique(df$dataset)) > 1)
+    p <- p + ggplot2::facet_wrap(~ dataset, scales = "free")
+  attr(p, "prevalence") <- df[, c("dataset", "case", "group", "n", "type", "share")]
+  p
 }

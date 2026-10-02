@@ -1,2 +1,7 @@
 .Rproj.user
 app.R
+.Rhistory
+Claude outputs/
+soil_organic_preservation_map/
+graphify-out/
+dev/

@@ -19,3 +19,9 @@ and a \code{prestige_total} column appended.
 Replaces each count > 0 with the mean TOT score of graves that contain
 that type, then sums across types to produce \code{prestige_total}.
 }
+\examples{
+df    <- read_count_data(example_data_path())
+cnt   <- df[, c("Grave_ID", identify_count_columns(df))]
+means <- get_TOT_means(get_TOT_range(cnt))
+head(apply_prestige_mean(means, cnt))   # each present type replaced by its value
+}

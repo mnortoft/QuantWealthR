@@ -18,3 +18,9 @@ A data frame with one row per case.
 Returns the \code{\link[=count_pipeline]{count_pipeline()}}/\code{\link[=phys_pipeline]{phys_pipeline()}} summary data frame
 formatted for easy reading, with optional rounding.
 }
+\examples{
+ph  <- read_count_data(example_data_path("phases"))
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+cases_summary(res)
+}

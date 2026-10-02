@@ -9,12 +9,20 @@ count_pipeline(
   group_col,
   id_col = NULL,
   date_col = NULL,
+  exclude_cols = NULL,
+  exclude_pattern = NULL,
   method = c("bayesian", "mean"),
   use_age_sep = TRUE,
   run_bias_sim = FALSE,
   n_bias_sims = 200,
+  min_match_len = 4,
+  split_stat = c("median", "mean"),
+  store_wealth = TRUE,
+  progress = interactive(),
   conf_level = 0.8,
-  min_group_size = 3
+  min_group_size = 3,
+  bias_ages = c("adults", "both"),
+  min_subadult_bias = 5
 )
 }
 \arguments{
@@ -31,11 +39,22 @@ auto-labelled "Dataset1", "Dataset2", etc.}
 factor to control the order of groups in the output and plots (e.g.
 chronological phases); otherwise groups follow their order of first
 appearance in the data. The same \code{group_col} name is used for every
-dataset when \code{data} is a list.}
+dataset when \code{data} is a list.
+
+To cross-group by several columns at once, give a character vector,
+e.g. \code{group_col = c("culture", "phase")}. Every observed combination
+then becomes its own group (and gets its own bias simulation when
+\code{run_bias_sim = TRUE}), labelled \code{"<culture> | <phase>"}. Combinations
+that don't occur in the data are not created. If all grouping columns
+are factors, groups are ordered by the first column's levels, then the
+second's, etc.; otherwise by order of first appearance. Rows with a
+missing value in any grouping column are left out (with a warning).}
 
 \item{id_col}{Character. Name of the unit ID column (e.g. \code{"grave_id"}).
 If NULL (default), the first non-group column is used as the ID, in
-each dataset.}
+each dataset.
+IDs must be unique within each dataset; the pipeline stops and lists
+the repeated IDs otherwise.}
 
 \item{date_col}{Character, optional. Name of a numeric column giving an
 absolute calendar date for each row (negative = BCE, positive = CE),
@@ -50,6 +69,23 @@ fields are simply absent from the output, exactly as if this argument
 didn't exist). Rows with a missing/non-numeric value in \code{date_col} are
 dropped only for this date computation, not from the rest of the
 analysis.}
+
+\item{exclude_cols}{Character vector of column names to leave out of the
+grave-good columns (e.g. numeric metadata such as \code{"Cremation"}, or
+features you don't want valued). Applied to every dataset; names absent
+from a given dataset are ignored there, but a warning is given for
+names found in none of the datasets (likely typos). Default NULL.}
+
+\item{exclude_pattern}{A single regular expression; grave-good columns
+whose names match it (case-insensitive) are left out, e.g.
+\code{"^(CON|ritual)_"} to drop all construction and ritual columns. A
+warning is given if it matches no column in any dataset. Default NULL.
+
+Excluded columns are removed before prestige values, inequality
+measures and the bias simulation are calculated, so they affect none
+of them. The columns actually used for each group are stored in
+\verb{$by_group[[case]]$count_cols}, and the excluded ones in
+\verb{$by_group[[case]]$excluded_cols}.}
 
 \item{method}{Prestige method: \code{"bayesian"} (default) or \code{"mean"}.}
 
@@ -68,25 +104,72 @@ interval like \code{gini_ci} -- see \code{\link[=simulate_category_bias]{simulat
 \item{n_bias_sims}{Integer. Number of bias simulations per group
 (default 200). Ignored when \code{run_bias_sim = FALSE}.}
 
+\item{min_match_len}{Integer. Passed to \code{\link[=simulate_category_bias]{simulate_category_bias()}}:
+minimum shared letter-sequence length for grouping columns without a
+common prefix into lump groups (default 4). Ignored when
+\code{run_bias_sim = FALSE}.}
+
+\item{split_stat}{\code{"median"} (default) or \code{"mean"}. Passed to
+\code{\link[=simulate_category_bias]{simulate_category_bias()}}: which typical count per type limits how
+many subtypes it can be split into. Ignored when \code{run_bias_sim = FALSE}.}
+
+\item{store_wealth}{Logical. Passed to \code{\link[=simulate_category_bias]{simulate_category_bias()}}. If
+TRUE (default), the per-grave wealth scores of every simulation are kept
+in \verb{$by_group[[case]]$bias$wealth_scores}, so they can be plotted later
+with \code{\link[=plot_bias_wealth_density]{plot_bias_wealth_density()}} or \code{\link[=plot_bias_wealth_lorenz]{plot_bias_wealth_lorenz()}}. Set
+FALSE to save memory with many groups, large datasets or many
+simulations. Ignored when \code{run_bias_sim = FALSE}.}
+
+\item{progress}{Logical. Show a text progress bar in the console
+(default: \code{interactive()}, i.e. on in RStudio/console, off in scripts
+run with Rscript or knitr). With \code{run_bias_sim = TRUE} the bar advances
+per simulation, since those take most of the time.}
+
 \item{conf_level}{Numeric CI level for Gini coefficients (default 0.80).
 Also used for \code{abs_gini_ci} when \code{run_bias_sim = TRUE}.}
 
 \item{min_group_size}{Integer. Groups with fewer observations than this are
 skipped with a warning (default 3).}
+
+\item{bias_ages}{Which graves the bias simulation covers. \code{"adults"}
+(default, as before and as in the app): adult graves only. \code{"both"}:
+also a second simulation for the subadult-only graves, in which every
+(simulated) type is valued from the adult graves (types found only in
+subadult graves from those), as in \code{\link[=calculate_prestige]{calculate_prestige()}}. Stored in
+\verb{$by_group[[case]]$bias_subadults} and used for bias bands and
+\code{\link[=compare_cases]{compare_cases()}} with \code{graves = "subadults"}. Doubles the simulation
+time. Adult results are unaffected.}
+
+\item{min_subadult_bias}{Minimum number of subadult-only graves in a group
+for the subadult simulation to be run (default 5); smaller groups get
+no subadult band (a message says so).}
 }
 \value{
-A list with two elements:
+A list of class \code{"qw_pipeline"} with two elements:
 \itemize{
-\item \verb{$summary}: a data frame with one row per group (per dataset, when
-multiple). When \code{data} is a single data frame, this matches the
-previous \code{qw_pipeline()} count-data output exactly. When \code{data} is a
-list, two extra columns are added: \code{dataset} (the list name) and
-\code{case} (\code{"<dataset>: <group>"}), the latter used as the unique row
-and \verb{$by_group} key so identical group names across datasets never
-collide.
-\item \verb{$by_group}: a named list (keyed by \code{case}, or by \code{group} when \code{data}
-was a single data frame) containing the full output of each
-analysis step, including \code{inequality$grid}.
+\item \verb{$summary}: a data frame with one row per group (per dataset and
+group, when \code{data} is a list). Columns: \code{group}; with several
+datasets also \code{dataset} and \code{case} (\code{"<dataset>: <group>"}, the name
+used everywhere else, so identical group names in different datasets
+never collide); with several \code{group_col}s one column per grouping
+variable; \code{n} (graves in the main subset: adult graves when age
+separation is used, otherwise all), \code{n_adult}, \code{n_subadult};
+\code{gini_combined} with \code{gini_ci}; \code{abs_gini} (Gini x mean wealth) with
+\code{abs_gini_ci} (from the bias simulations, if run); \code{mean_wealth},
+\code{median_wealth}; \code{gini_prestige} and \code{gini_tot} (the same without the
+count bonus / with type counts only); \code{gini_subadult},
+\code{abs_gini_subadult}; and \code{date}, \code{date_min}, \code{date_max} when
+\code{date_col} is given.
+\item \verb{$by_group}: a named list with one entry per case (class
+\code{"qw_group"}), holding \code{dataset}, \code{group}, \code{case}, \code{n}, the dates,
+\code{count_cols} (the grave-good columns used) and \code{excluded_cols},
+\code{prestige_df} (the \code{\link[=calculate_prestige]{calculate_prestige()}} result: one row per grave
+with its wealth), \code{inequality} (the \code{\link[=inequality_summary]{inequality_summary()}} result,
+including \verb{$grid} with every measure x grave subset), and with
+\code{run_bias_sim = TRUE} \code{bias} (the \code{\link[=simulate_category_bias]{simulate_category_bias()}} result)
+and, with \code{bias_ages = "both"}, \code{bias_subadults}. An entry can be
+passed directly to \code{\link[=plot_bias]{plot_bias()}}, \code{\link[=plot_bias_wealth_density]{plot_bias_wealth_density()}} and
+\code{\link[=plot_bias_wealth_lorenz]{plot_bias_wealth_lorenz()}}.
 }
 }
 \description{
@@ -113,21 +196,25 @@ than a shared \code{data_type} switch, since the two kinds of data need
 different columns and produce different summary statistics.
 }
 \examples{
-\dontrun{
-# Single dataset -- multiple Bronze Age phases
-df <- data.frame(
-  phase  = rep(c("Early", "Middle", "Late"), each = 15),
-  grave  = paste0("G", 1:45),
-  sword  = sample(c(NA, 1:3), 45, replace = TRUE),
-  shield = sample(c(NA, 1:2), 45, replace = TRUE),
-  bronze = sample(c(NA, 1:4), 45, replace = TRUE)
-)
-result <- count_pipeline(df, group_col = "phase", id_col = "grave")
-result$summary
+ph <- read_count_data(example_data_path("phases"))
 
-# Multiple datasets with different grave-good columns
-result2 <- count_pipeline(list(SiteA = df_a, SiteB = df_b),
-                           group_col = "phase", id_col = "grave")
-result2$summary
-}
+# One dataset per culture; each phase is analysed separately
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+res$summary
+names(res$by_group)              # the cases, "dataset: phase"
+res$by_group[["A: A2"]]$prestige_df[1:3, ]
+
+# With category-bias simulations, also for the subadult graves
+set.seed(1)
+res_b <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                        id_col = "Grave_ID", date_col = "date_BCE",
+                        run_bias_sim = TRUE, n_bias_sims = 20,
+                        bias_ages = "both", progress = FALSE)
+
+# Leave out construction features from the valuation
+res_nc <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                         id_col = "Grave_ID", date_col = "date_BCE",
+                         exclude_pattern = "^CON_",
+                         progress = FALSE)
 }

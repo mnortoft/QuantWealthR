@@ -6,7 +6,7 @@
 \usage{
 plot_density(
   prestige_df,
-  graves = c("all", "adults", "subadults"),
+  graves = c("adults", "all", "subadults"),
   case = NULL,
   dates = NULL
 )
@@ -14,8 +14,8 @@ plot_density(
 \arguments{
 \item{prestige_df}{Output from \code{\link[=calculate_prestige]{calculate_prestige()}}.}
 
-\item{graves}{Which graves to include: \code{"all"} (default, matches app),
-\code{"adults"}, or \code{"subadults"}.  The choice is shown in the plot title.}
+\item{graves}{Which graves to include: \code{"adults"} (default), \code{"all"},
+or \code{"subadults"}.  The choice is shown in the plot title.}
 
 \item{case}{Character. Culture or period name added to the title.}
 
@@ -26,4 +26,10 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
 Plot wealth density curves for three wealth measures
+}
+\examples{
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+plot_density(pres)
+plot_density(pres, graves = "all", case = "Example site")
 }

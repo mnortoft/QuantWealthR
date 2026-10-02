@@ -27,7 +27,7 @@ statistics of \code{combined_total}.
 subadult results when available (else NA).
 \item \code{grid}: a data frame with one row per \code{measure} (combined/prestige/tot)
 x \code{graves} (adults/subadults/all) combination, with columns \code{n},
-\code{gini}, \code{lower}, \code{upper}, \code{abs_gini}, \code{mean_wealth}, \code{median_wealth}.
+\code{gini}, \code{lower}, \code{upper}, \code{abs_gini}, \code{mean_wealth}, \code{median_wealth}, \code{min_wealth}, \code{max_wealth}.
 Combinations with fewer than 2 observations have \code{NA} statistics
 (silently -- e.g. "subadults" when there is no age separation at all
 -- rather than warning, since that combination is structurally absent
@@ -62,12 +62,9 @@ identical (there is nothing to separate), and "subadults" is \code{NA} (no
 subadult-only rows exist to compute on).
 }
 \examples{
-df <- data.frame(
-  id = paste0("G", 1:8),
-  sword  = c(1, NA, 2, NA, 1, NA, 1, NA),
-  shield = c(NA, 1, 1, NA, NA, 1, NA, 1),
-  bronze = c(1, NA, NA, 1, 1, NA, NA, NA)
-)
+df   <- read_count_data(example_data_path())
 pres <- calculate_prestige(df)
-inequality_summary(pres)
+ineq <- inequality_summary(pres)
+ineq$gini_combined    # Gini with confidence interval
+ineq$grid             # every measure x grave subset (adults, all, subadults)
 }

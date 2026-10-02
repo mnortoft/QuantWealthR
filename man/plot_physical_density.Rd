@@ -26,3 +26,7 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 \description{
 Plot density curve for physical measure data
 }
+\examples{
+areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
+plot_physical_density(areas, data_type = "House floor area")
+}

@@ -1,0 +1,409 @@
+---
+title: "Comparing phases and cultures"
+author: "Mikkel Nørtoft"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparing phases and cultures}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.5,
+                      warning = FALSE)
+```
+
+This vignette follows a full comparison: several phases of two cultures,
+recorded by different people, with some graves undated. It builds on
+`vignette("introduction")`, which explains the wealth measure for a single
+assemblage.
+
+The question throughout is: **was culture A more unequal than culture B?**
+Answering it honestly means dealing with three problems that every
+cross-source comparison has:
+
+1. **Sampling**: each phase is a limited sample of graves.
+2. **Recording**: the two datasets split grave goods into types differently,
+   and record different things (e.g. constructions).
+3. **Dating**: some graves have no phase and have to be imputed.
+
+QuantWealthR has a tool for each, and `compare_cases()` and
+`multiverse_compare()` bring them together.
+
+```{r load}
+library(QuantWealthR)
+```
+
+## The example data
+
+The package includes a **simulated** dataset: 220 graves from two
+fictitious cultures, A and B, with three phases each. The values are
+random; they only serve to show the workflow.
+
+```{r data}
+ph <- read_count_data(example_data_path("phases"))
+names(ph)
+table(ph$culture, ph$phase, useNA = "ifany")
+table(ph$dating_method)
+```
+
+The columns are:
+
+- `Grave_ID`: one row per grave (or per individual, see below);
+- `phase` and `date_BCE` (negative numbers = BCE): the phase and its date;
+- `dating_method`: how the phase was assigned, here `"radiocarbon"`,
+  `"typology"` or `"random imputation"` (no phase known);
+- `adult_count`, `subadult_count`: the number of adults and children in the
+  grave;
+- the grave-good types, one column per type, with prefixes for the material
+  (`c_` pottery, `f_` flint, `s_` stone, `cu_` copper, `o_` ornaments, `b_`
+  bone, `CON_` construction).
+
+Culture B records stone constructions (`CON_stone_cist`); culture A does
+not. That is a recording difference we will come back to.
+
+Each culture is analysed on its own: type values are calculated within
+each culture (and phase), so that wealth reflects what was valued *in that
+society*. The pipeline therefore takes **one data frame per culture**:
+
+```{r split}
+cultures <- split(ph, ph$culture)
+names(cultures)
+```
+
+## 1. Undated graves: multiple imputation
+
+Twelve graves of culture A have no phase. Leaving them out would bias the
+result if undated graves differ from dated ones, and they usually do:
+graves without diagnostic goods are both poorer and harder to date.
+
+`impute_phases()` gives each undated grave a random phase, with
+probabilities equal to the phase shares among the dated graves, and does so
+several times. Each copy is a plausible version of the data; the spread
+between copies is the uncertainty that the dating adds.
+
+```{r impute}
+imps_A <- impute_phases(cultures$A, phase_col = "phase", unit_col = "Grave_ID",
+                        event_pattern = NULL, date_col = "date_BCE",
+                        n_imp = 10, seed = 1)
+attr(imps_A, "probabilities")
+sapply(imps_A[1:3], function(d) table(d$phase))
+```
+
+Two arguments deserve a note:
+
+- `unit_col` and `event_pattern`: when several individuals from one burial
+  are separate rows (e.g. `GRAB_12_ind1`, `GRAB_12_ind2`), they should get
+  the same phase. `event_pattern` removes the individual part of the ID so
+  that all rows of one burial share one draw. Here every row is its own
+  grave, so `event_pattern = NULL`.
+- `restrict`: if you know that some undated graves can only belong to
+  certain phases (say, graves of a type that radiocarbon dates place in the
+  early or middle phase), give them their own `dating_method` value and
+  list the allowed phases. The probabilities can come from a reference group
+  of dated graves of the same kind (`ref`). See `?impute_phases`.
+
+`impute_phases()` warns when rows have no phase and are not imputed either,
+since those would silently drop out of the analysis.
+
+## 2. Running the pipeline
+
+`count_pipeline()` runs the whole analysis for every phase of every
+dataset: type values, wealth per grave, inequality measures and, with
+`run_bias_sim = TRUE`, the recording-bias simulations. We use the first
+imputed copy of culture A for now.
+
+```{r pipeline}
+set.seed(1)
+res <- count_pipeline(list(A = imps_A[[1]], B = cultures$B),
+                      group_col = "phase", id_col = "Grave_ID", date_col = "date_BCE",
+                      run_bias_sim = TRUE, n_bias_sims = 50, bias_ages = "both",
+                      progress = FALSE)
+res$summary[, c("case", "n", "n_subadult", "gini_combined", "mean_wealth", "median_wealth")]
+```
+
+Each phase becomes a *case* called `"<dataset>: <phase>"`. Some practical
+points:
+
+- **`date_col`** places each case on the time axis, and keeps the date
+  column from being counted as a grave good. If a numeric column with
+  negative values is about to be counted as a grave good, the pipeline
+  warns you: that is almost always a date.
+- **`exclude_cols`** / **`exclude_pattern`** remove other columns from the
+  valuation, e.g. `exclude_pattern = "^CON_"` for constructions.
+- **`bias_ages = "both"`** also runs the recording-bias simulation for
+  the subadult graves (see section 7). It doubles the run time.
+
+### Which imputation goes into the figures?
+
+A figure can only show one imputed copy. Pick the one whose results are
+closest to the median over all copies, and report the range in the caption:
+
+```{r representative}
+gini_by_imp <- sapply(imps_A, function(a) {
+  r <- count_pipeline(a, group_col = "phase", id_col = "Grave_ID",
+                      date_col = "date_BCE", progress = FALSE)
+  setNames(r$summary$gini_combined, r$summary$group)
+})
+med  <- apply(gini_by_imp, 1, median)
+best <- which.min(colSums(abs(gini_by_imp - med)))
+round(cbind(median = med, chosen = gini_by_imp[, best],
+            min = apply(gini_by_imp, 1, min), max = apply(gini_by_imp, 1, max)), 3)
+```
+
+The statistical comparisons in sections 5 and 6 use **all** copies, so the
+choice only matters for the figures.
+
+## 3. Looking at the cases
+
+Before any inequality measure, look at what the graves contain. Which types
+are common where, and how is wealth spread?
+
+```{r prevalence, fig.height = 5}
+plot_type_prevalence(res, top_n = 12)
+```
+
+The heatmap shows the share of graves with each type. Here
+`CON_stone_cist` exists only in culture B: a recording difference, not
+necessarily a difference in practice.
+
+```{r boxplot}
+plot_wealth_boxplot(res, show_points = TRUE)
+```
+
+```{r deciles, fig.height = 5}
+plot_decile_groups(res)
+```
+
+### Where are the graves?
+
+With `lat` and `lng` columns in the data, `plot_case_map()` shows where each
+case's graves lie. By default graves with the same coordinates are combined
+into one point per site, sized by the number of graves:
+
+```{r map, fig.height = 5}
+plot_case_map(res)
+```
+
+Point size can show a site statistic instead (`size_by = "median_wealth"`,
+`"gini"`, `"empty_share"`, ...), and `level = "grave"` draws every grave,
+sized by its wealth. Use the map to check whether two cases you compare
+come from the same area: if they do not, a difference between them may be
+regional rather than cultural or chronological.
+
+### Could preservation explain it?
+
+Bone, tooth and shell objects survive badly in acidic, free-draining soils.
+If one culture's graves lie on such soils, it will look poorer for reasons
+that have nothing to do with wealth. `add_soil_preservation()` adds the
+soil preservation scores of Kibblewhite et al. (2015) to each grave
+(1 = poor, 3 = good). The map comes from the European Soil Data Centre and is
+not included in the package; download it there and give the path:
+
+```{r soil, eval = FALSE}
+soil <- sf::st_read("path/to/SF_cultural.shp", quiet = TRUE)
+A <- add_soil_preservation(cultures$A, soil)
+B <- add_soil_preservation(cultures$B, soil)
+# Do the cultures lie on soils that preserve bone differently?
+summary(A$soil_bones); summary(B$soil_bones)
+```
+
+## 4. Inequality over time
+
+`plot_gini_timeline()` shows several statistics per case, one panel each,
+on a shared date axis.
+
+```{r timeline, fig.height = 8}
+plot_gini_timeline(res, series = c("gini", "top_share", "median_wealth", "mean_wealth"),
+                   bias_band = TRUE, bounded_axis = "free")
+```
+
+How to read it:
+
+- **Gini** and **top 10 % share** are *relative* measures: they do not
+  change if every grave becomes twice as rich. They are the ones that can
+  be compared **between** cultures, because each culture's wealth is
+  measured in its own units (its own type values).
+- **Median** and **mean wealth** are *levels*. Compare them **within** a
+  culture, over time. Between cultures they differ partly because of how
+  much was recorded, so a higher level in B says little on its own.
+- The **error bars** are bootstrap intervals (sampling); the **shaded band**
+  is the middle 50 % of the recording-bias simulations (random splitting
+  and lumping of types).
+- `bounded_axis = "free"` zooms the 0–1 axes to the data. This makes small
+  differences visible, and a note in the caption says that the axis does
+  not start at 0. Use the default (`"fixed"`) to show the full scale.
+
+The absolute Gini (`"abs_gini"`, Gini × mean) mixes the two kinds: it
+rises when either inequality or the level rises. Show it next to the Gini
+and mean rather than alone.
+
+### Lorenz curves and their crossings
+
+A Gini ranking can be misleading when Lorenz curves cross: one case can be
+more unequal at the bottom and the other at the top.
+`plot_lorenz_comparison()` marks the crossings.
+
+```{r lorenz, fig.height = 5}
+p <- plot_lorenz_comparison(res, facet_datasets = FALSE)
+p
+attr(p, "crossings")
+```
+
+When curves cross, report measures that look at different parts of the
+distribution, e.g. the bottom 50 % share and the Atkinson index (ε = 2 is
+sensitive to the poorest graves):
+
+```{r shares, fig.height = 5}
+plot_gini_comparison(res, series = c("gini", "top_share", "bottom_share", "atkinson"),
+                     atkinson_eps = 2)
+```
+
+## 5. Is case A more unequal than case B?
+
+`compare_cases()` answers this for two cases, combining sampling, recording
+and dating uncertainty. In each draw it resamples the graves of both cases
+(bootstrap), takes the wealth of one bias simulation, and, given a list of
+pipeline results, one imputed copy.
+
+```{r compare}
+res_list <- lapply(imps_A, function(a)
+  count_pipeline(list(A = a, B = cultures$B), group_col = "phase",
+                 id_col = "Grave_ID", date_col = "date_BCE",
+                 run_bias_sim = TRUE, n_bias_sims = 30, progress = FALSE))
+
+cc <- compare_cases(res_list, "A: A3", "B: B3", n_draws = 500, seed = 1)
+cc
+```
+
+`P(A more unequal)` is the share of draws in which A came out more unequal.
+Values near 50 % mean the data cannot tell the two apart; values near 0 % or
+100 % mean the ranking holds across the uncertainty. For the bottom share,
+"more unequal" means a *smaller* bottom share. The interval is the 95 %
+range of the difference A − B.
+
+```{r compare-plot, fig.height = 3.5}
+plot_compare_cases(cc)
+```
+
+What `compare_cases()` cannot include are recording differences that are
+not about how finely types are split: a construction recorded in one
+dataset only, graves without goods missing from one source, or vessel sets
+recorded form by form. That is what the multiverse is for.
+
+## 6. The multiverse: does the answer depend on my choices?
+
+Data from different sources leave many defensible choices: include
+constructions or not, keep graves without goods or not, lump all pottery
+into one type or not. `multiverse_compare()` runs the analysis for **every
+combination** of the choices you list and reports how often A comes out
+more unequal than B.
+
+```{r multiverse}
+mv <- multiverse_compare(
+  list(A = imps_A[1:3], B = cultures$B),        # 3 imputed copies of A
+  group_col = "phase", id_col = "Grave_ID", date_col = "date_BCE",
+  exclude_patterns = c(all_columns = NA, no_constructions = "^CON_"),
+  drop_empty = c(FALSE, TRUE),
+  age_known_only = c(FALSE, TRUE),
+  lump = list(none = NULL,
+              pottery_lumped = list(A = c(c_all = "^c_"), B = c(c_all = "^c_"))),
+  comparisons = list(c("A: A1", "B: B1"), c("A: A2", "B: B2"), c("A: A3", "B: B3")),
+  progress = FALSE)
+mv
+```
+
+Here that is 2 × 2 × 2 × 2 × 3 = 48 specifications per comparison.
+`age_known_only = c(FALSE, TRUE)` runs everything once with all graves and
+once with only the graves that have a recorded number of adults or
+children. Graves without age information are otherwise counted as adult
+graves, so this shows whether that assumption matters. (In this simulated
+data every grave has age information, so the two give the same result; in
+real data they often do not.)
+
+When the checks you want differ between sources, use `row_filters`: each
+alternative is a function that selects graves, or one function per dataset.
+For example, graves with age information in one source and securely
+identified graves in another:
+
+```{r row-filters, eval = FALSE}
+row_filters = list(all_graves = NULL,
+                   checked    = list(A = has_age_info,
+                                     B = function(d) d$dating_method == "radiocarbon"))
+```
+
+```{r multiverse-plot, fig.height = 6}
+plot_multiverse(mv, type = "summary")
+```
+
+Read the grid row by row: each cell is the share of specifications in which
+the row case is more unequal than the column case. Dark red or dark blue
+means the ranking is **robust** to the choices; white means it **depends** on
+them. `split_by = "lump"` (or `"exclude"`, `"drop_empty"`) shows which choice
+it depends on:
+
+```{r multiverse-split, fig.height = 7}
+plot_multiverse(mv, type = "summary", split_by = "exclude")
+plot_multiverse(mv, type = "summary", split_by = "age_known_only")
+```
+
+The multiverse has no bootstrap: 100 % means every choice gives the same
+ranking, not that the difference exceeds sampling uncertainty. In this
+example, B3 is more unequal than A3 (by the Gini) in
+`r round(100 * (1 - mv$summary$share_a_more_unequal[mv$summary$comparison == "A: A3 vs B: B3" & mv$summary$stat == "gini"]))` %
+of the specifications, yet `compare_cases()` above put the probability that
+A3 is more unequal at
+`r round(100 * cc$summary$p_a_more_unequal[cc$summary$stat == "gini"])` %:
+the direction does not depend on the analysis choices, but with 20–30
+graves per phase sampling alone could produce it. Use it
+together with `compare_cases()`: the multiverse says whether the direction
+depends on the analysis choices, `compare_cases()` whether it holds
+across sampling, recording and dating uncertainty.
+
+## 7. Children
+
+All comparison functions default to `graves = "adults"`, because children
+are usually buried with less, so the share of children in a sample would
+otherwise change the result. Subadult graves can be analysed separately
+with `graves = "subadults"`:
+
+```{r subadults, fig.height = 5}
+plot_gini_timeline(res, series = c("gini", "median_wealth"),
+                   graves = "subadults", bias_band = TRUE)
+```
+
+Type values still come from the adult graves (types found only in children's
+graves are valued from those), so children are measured on the adults'
+scale. With `bias_ages = "both"` in `count_pipeline()`, the bias band uses
+the same valuation. Phases with fewer than `min_subadult_bias` (default 5)
+subadult graves get no band.
+
+Subadult samples are small; check `n` before reading anything into a
+difference. The figure titles always say which age group is shown.
+
+## Saving figures
+
+Some labels use symbols (ε, √, →). The standard `pdf()` device cannot draw
+them; for PDF figures use the Cairo device, which can:
+
+```{r save, eval = FALSE}
+p <- plot_gini_timeline(res, series = c("gini", "atkinson"), atkinson_eps = 2)
+ggplot2::ggsave("timeline.pdf", p, width = 7, height = 6, device = grDevices::cairo_pdf)
+ggplot2::ggsave("timeline.png", p, width = 7, height = 6, dpi = 300)   # PNG works as is
+```
+
+Alternatively, `options(QuantWealthR.unicode = FALSE)` makes the package
+write `e`, `sqrt(count)` and `->` instead, before you create the plots.
+
+## A reporting checklist
+
+- State how undated graves were handled (`impute_phases()`, number of
+  copies, any restrictions) and which copy the figures show.
+- Compare cultures with relative measures (Gini, shares, Atkinson); compare
+  levels (median, mean) within a culture.
+- When Lorenz curves cross, report the bottom and top shares as well as the
+  Gini.
+- Give `compare_cases()` results for the comparisons that carry the
+  argument, and the multiverse for the choices a reader could question.
+- Report subadults separately, with their sample sizes.

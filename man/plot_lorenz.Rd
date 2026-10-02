@@ -42,10 +42,8 @@ measures, matching the layout of the QuantWealth app.  Optionally overlays
 the full Gini annotation panel from \code{\link[=inequality_summary]{inequality_summary()}}.
 }
 \examples{
-\dontrun{
+df   <- read_count_data(example_data_path())
 pres <- calculate_prestige(df)
 ineq <- inequality_summary(pres)
-plot_lorenz(pres, ineq, case = "Baden Budakalasz",
-            dates = format_dates(-3360, -2890))
-}
+plot_lorenz(pres, ineq, case = "Example site", dates = format_dates(-2800, -2500))
 }

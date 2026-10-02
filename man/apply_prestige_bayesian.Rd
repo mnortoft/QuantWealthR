@@ -26,3 +26,9 @@ occur in exactly one grave; its practical benefit is the credible
 interval \code{\link[=bayesian_prestige]{bayesian_prestige()}} reports alongside each estimate, shown in
 \code{\link[=plot_prestige]{plot_prestige()}}.
 }
+\examples{
+df    <- read_count_data(example_data_path())
+cnt   <- df[, c("Grave_ID", identify_count_columns(df))]
+bayes <- bayesian_prestige(get_TOT_range(cnt))
+head(apply_prestige_bayesian(bayes, cnt))
+}

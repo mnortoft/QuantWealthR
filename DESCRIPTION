@@ -22,6 +22,8 @@ Imports:
     tidyr,
     ggtext
 Suggests:
+    maps,
+    sf,
     readxl,
     knitr,
     rmarkdown

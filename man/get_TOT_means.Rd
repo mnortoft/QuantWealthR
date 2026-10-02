@@ -15,3 +15,9 @@ Data frame with columns \code{Type} and \code{mean}.
 \description{
 Compute mean TOT per grave good type
 }
+\examples{
+df  <- read_count_data(example_data_path())
+cnt <- df[, c("Grave_ID", identify_count_columns(df))]
+tot <- get_TOT_range(cnt)
+get_TOT_means(tot)   # mean TOT of the graves containing each type
+}

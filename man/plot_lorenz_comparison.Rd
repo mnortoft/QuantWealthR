@@ -8,7 +8,13 @@ plot_lorenz_comparison(
   pipeline_result,
   title = NULL,
   cases = NULL,
-  case_order = NULL
+  case_order = NULL,
+  graves = c("adults", "all", "subadults"),
+  measure = c("combined", "prestige", "tot"),
+  facet_datasets = TRUE,
+  mark_crossings = TRUE,
+  crossing_tol = 0.005,
+  edge = 0.1
 )
 }
 \arguments{
@@ -17,22 +23,56 @@ plot_lorenz_comparison(
 
 \item{title}{Optional plot title.}
 
-\item{cases}{Character vector of case names to include.  Default: all cases.}
+\item{cases}{Character vector of case names (keys of
+\code{pipeline_result$by_group}, e.g. \code{"SK: 2480-2300"}) to include.
+Default: all cases.}
 
-\item{case_order}{Optional character vector giving the order of cases in the
-legend (e.g. \code{c("Early", "Middle", "Late")}).  If \code{NULL} (default), the
-\code{\link[=count_pipeline]{count_pipeline()}} order is used.  Cases omitted are appended at the end.}
+\item{case_order}{Optional character vector giving the order of cases in
+the legend and colour ramp. Matches either group labels (e.g.
+\code{c("2800-2620", "2620-2480")}) or full case names. If \code{NULL} (default),
+the \code{\link[=count_pipeline]{count_pipeline()}} order is used. Cases omitted are appended.}
+
+\item{graves}{\code{"adults"} (default), \code{"all"} or \code{"subadults"}: which graves
+the curves (and the Gini in the legend) are based on.}
+
+\item{measure}{\code{"combined"} (default; prestige + sqrt-count bonus),
+\code{"prestige"} or \code{"tot"} (TOT + 1).}
+
+\item{facet_datasets}{Logical. With more than one dataset, draw one panel
+per dataset (default TRUE). FALSE overlays all curves in one panel.}
+
+\item{mark_crossings}{Logical. Mark the points where two curves in the
+same panel cross (default TRUE). Where curves cross, the cases are not
+ranked the same by every inequality measure: one is more unequal at the
+bottom, the other at the top (Atkinson 1970), so a Gini ranking between
+them depends on the Gini's weighting. Compare with a bottom share, a top
+share and Atkinson indices (\code{\link[=plot_gini_comparison]{plot_gini_comparison()}}).}
+
+\item{crossing_tol}{Curves closer than this (in cumulative wealth share)
+count as touching, not crossing (default 0.005), so near-identical
+curves don't produce a cloud of marks.}
+
+\item{edge}{Crossings in the outer \code{edge} share of the population (default
+0.1, i.e. below 10\% and above 90\%) are drawn hollow: they rest on the
+few poorest or richest graves and are easily produced by one grave more
+or less, especially in small cases.}
 }
 \value{
-A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
+A \link[ggplot2:ggplot]{ggplot2::ggplot} object. The crossings found are attached as
+attribute \code{"crossings"} (\code{attr(p, "crossings")}): panel, the two cases,
+position (\code{cum_pop}, \code{cum_wealth}) and whether it lies in the edge zone.
 }
 \description{
 Takes the output of \code{\link[=count_pipeline]{count_pipeline()}} and draws one Lorenz curve per
-case, coloured by case.
+case, coloured by case, with each case's Gini in the legend. With several
+datasets (e.g. \code{count_pipeline(list(SK = ..., GAC = ...))}), each dataset
+gets its own panel by default.
 }
 \examples{
-\dontrun{
-result <- count_pipeline(df, group_col = "phase", id_col = "grave")
-plot_lorenz_comparison(result)
-}
+ph  <- read_count_data(example_data_path("phases"))
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+plot_lorenz_comparison(res)                           # one panel per culture
+plot_lorenz_comparison(res, facet_datasets = FALSE)   # all in one panel
+attr(plot_lorenz_comparison(res), "crossings")        # where curves cross
 }

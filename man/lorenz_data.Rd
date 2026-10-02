@@ -21,3 +21,9 @@ and \code{measure} (factor: "combined", "prestige", "TOT+1").
 Computes Lorenz curve coordinates (cumulative population share vs
 cumulative wealth share) for each of the three wealth measures.
 }
+\examples{
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+head(lorenz_data(pres))                      # adults (default)
+head(lorenz_data(pres, graves = "all"))
+}

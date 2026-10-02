@@ -21,3 +21,8 @@ A data frame with columns \code{wealth_rank} (1-10, factor),
 Assigns each unit to a wealth decile and returns the share of total wealth
 held by each decile.
 }
+\examples{
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+decile_data(pres)   # share of total wealth held by each tenth of the graves
+}

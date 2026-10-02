@@ -20,3 +20,8 @@ For each unit, sums sqrt(count) - 1 across all types where count >= 1.
 This bonus accounts for quantity (e.g. 5 swords > 1 sword) without
 letting counts dominate.
 }
+\examples{
+df <- read_count_data(example_data_path())
+sqrt_count_bonus(df)   # extra wealth for several items of the same type
+# e.g. 25 beads add sqrt(25) - 1 = 4, a single item adds 0
+}

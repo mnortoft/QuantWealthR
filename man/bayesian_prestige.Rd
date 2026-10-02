@@ -39,12 +39,8 @@ narrows for high-n types. That interval is for display only (used by
 weights or any downstream Gini/wealth calculation.
 }
 \examples{
-df <- data.frame(
-  id = 1:10,
-  sword  = c(1, NA, 1, 1, NA, NA, 1, NA, 1, NA),
-  shield = c(1, 1, NA, 1, 1, NA, NA, NA, NA, 1),
-  bronze = c(NA, NA, 1, NA, NA, 1, NA, NA, NA, NA)
-)
-tot <- get_TOT_range(df)
-bayesian_prestige(tot)
+df  <- read_count_data(example_data_path())
+cnt <- df[, c("Grave_ID", identify_count_columns(df))]
+tot <- get_TOT_range(cnt)
+bayesian_prestige(tot)   # shrinks rare types towards the overall mean
 }

@@ -2,3 +2,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^CODE_REVIEW_FINDINGS\.md$
+^dev$
+^data-raw$
+^Claude outputs$
+^graphify-out$
+^\.Rhistory$
+^soil_organic_preservation_map$

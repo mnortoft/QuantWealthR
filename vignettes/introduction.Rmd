@@ -198,10 +198,12 @@ already reflects that choice. All three bias-related plots below
 (`plot_bias()`, `plot_bias_wealth_density()`, `plot_bias_wealth_lorenz()`)
 show which subset was used in their title. To compare adults vs subadults,
 run `simulate_category_bias()` twice with different `graves` values and
-look at the two plots side by side.
+look at the two plots side by side. For subadult graves, add
+`values_from = "adults"` so that the simulated types are valued from the adult
+graves, as `calculate_prestige()` does.
 
 ```{r bias, fig.height = 6}
-bias <- simulate_category_bias(df,
+bias <- simulate_category_bias(df, pres,       # pres: from calculate_prestige()
                                 graves = "adults",  # use adult graves only
                                 n_sims = 100)
 
@@ -214,7 +216,7 @@ plot_bias(bias,
 The `store_wealth` option saves per-grave wealth scores for every simulation. This lets you go beyond the Gini summary and look at how splitting/lumping decisions reshape the *whole* wealth distribution, not just its inequality value:
 
 ```{r bias_wealth, fig.height = 6}
-bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
+bias_w <- simulate_category_bias(df, pres, n_sims = 100, store_wealth = TRUE)
 
 # Wealth scores from simulation 1, split direction:
 head(bias_w$wealth_scores$split[[1]])
@@ -379,15 +381,9 @@ This single example already covers two of the comparisons you might want: Site A
 plot_gini_comparison(result_sites)
 ```
 
-### Combining count and physical-measure pipelines in one plot
+### A note on count data vs. physical measures
 
-`plot_gini_comparison()` can also take a **named list of pipeline results** (rather than raw data) as its first argument. This is how a `count_pipeline()` result and a `phys_pipeline()` result -- two different data types, produced by two different functions -- end up in the same figure:
-
-```{r combine_count_phys}
-plot_gini_comparison(list(Counts = result, Sizes = result_phys))
-```
-
-`result` (grave-good counts, phases Early/Middle/Late) and `result_phys` (house areas, Phase 1/2/3) share no groups or columns in common, but appear as two side-by-side panels, each keeping its own case labels on the x-axis. Use this whenever you want one figure spanning, say, grave-good wealth and house-size wealth for the same broader comparison.
+`plot_gini_comparison()` can take a **named list of pipeline results** (rather than raw data) as its first argument -- this is how several [`count_pipeline()`] calls for sites with incompatible columns end up faceted together in one figure. It deliberately does *not* let you mix a [`count_pipeline()`] result with a [`phys_pipeline()`] result this way, though: count-data wealth (a prestige + sqrt-count score) and physical-measure wealth (m^2^, m^3^, cm, ...) aren't the same kind of quantity, so their Absolute Gini/mean/median values sit on different, incommensurable scales. Plotting them together would force a single shared right-hand axis to represent two different units at once, visually squashing whichever type has the smaller magnitude -- not a cosmetic glitch, an actually misleading axis. If you want both in view, call `plot_gini_comparison()` once per data type and place the two images side by side yourself.
 
 ### Choosing what to plot
 
@@ -505,7 +501,7 @@ Because the bias simulation and Gini bootstrap CIs involve random sampling, set 
 
 ```{r seed, eval = FALSE}
 set.seed(42)
-bias <- simulate_category_bias(df, n_sims = 200)
+bias <- simulate_category_bias(df, pres, n_sims = 200)
 
 set.seed(42)
 ineq <- inequality_summary(pres, n_boot = 500)
@@ -513,8 +509,14 @@ ineq <- inequality_summary(pres, n_boot = 500)
 
 The **prestige values** (`calculate_prestige()`) and **observed Gini** (`orig_gini_*` in bias results) are fully deterministic — no seed needed.
 
+## Next steps
+
+To compare several phases or cultures, including undated graves, recording
+differences between sources and the question of which of two cases was more
+unequal, see `vignette("comparing", package = "QuantWealthR")`.
+
 ---
 
 ## Citation
 
-> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. <https://doi.org/10.31235/osf.io/wzcqy_v2>
+> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. <https://doi.org/10.31235/osf.io/wzcqy_v3>

@@ -4,7 +4,7 @@
 
 #' Calculate Gini coefficient(s) for a wealth vector
 #'
-#' A thin wrapper around [DescTools::Gini()] that selects the confidence
+#' A thin wrapper around `DescTools::Gini()` that selects the confidence
 #' interval method automatically: bootstrap CIs for n <= 500, point estimate
 #' only for larger samples.
 #'
@@ -17,10 +17,15 @@
 #'   (default 0.80, matching the app). Set to NA to skip CI.
 #' @param n_boot Number of bootstrap replicates when n <= 500 (default 500).
 #' @return Named numeric vector: `gini`, and (if CI computed) `lower`, `upper`.
-#' @export
 #' @examples
 #' wealth <- c(1, 1, 2, 3, 5, 8, 13, 21)
 #' calculate_gini(wealth)
+#'
+#' # From grave wealth
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' calculate_gini(pres$combined_total)
+#' @export
 calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
   x <- x[!is.na(x)]
   if (add_one) x <- x + 1
@@ -81,21 +86,18 @@ calculate_gini <- function(x, add_one = TRUE, conf_level = 0.80, n_boot = 200) {
 #'     subadult results when available (else NA).
 #'   - `grid`: a data frame with one row per `measure` (combined/prestige/tot)
 #'     x `graves` (adults/subadults/all) combination, with columns `n`,
-#'     `gini`, `lower`, `upper`, `abs_gini`, `mean_wealth`, `median_wealth`.
+#'     `gini`, `lower`, `upper`, `abs_gini`, `mean_wealth`, `median_wealth`, `min_wealth`, `max_wealth`.
 #'     Combinations with fewer than 2 observations have `NA` statistics
 #'     (silently -- e.g. "subadults" when there is no age separation at all
 #'     -- rather than warning, since that combination is structurally absent
 #'     for every group in that case, not a data problem worth flagging).
-#' @export
 #' @examples
-#' df <- data.frame(
-#'   id = paste0("G", 1:8),
-#'   sword  = c(1, NA, 2, NA, 1, NA, 1, NA),
-#'   shield = c(NA, 1, 1, NA, NA, 1, NA, 1),
-#'   bronze = c(1, NA, NA, 1, 1, NA, NA, NA)
-#' )
+#' df   <- read_count_data(example_data_path())
 #' pres <- calculate_prestige(df)
-#' inequality_summary(pres)
+#' ineq <- inequality_summary(pres)
+#' ineq$gini_combined    # Gini with confidence interval
+#' ineq$grid             # every measure x grave subset (adults, all, subadults)
+#' @export
 inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
 
   has_age <- "is_adult_grave" %in% names(prestige_df)
@@ -165,11 +167,15 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
                                     conf_level = conf_level, n_boot = n_boot)
         mean_v   <- mean(vals, na.rm = TRUE)
         median_v <- median(vals, na.rm = TRUE)
+        min_v    <- min(vals, na.rm = TRUE)
+        max_v    <- max(vals, na.rm = TRUE)
         abs_g    <- round(unname(g["gini"]) * mean_v, 2)
       } else {
         g        <- c(gini = NA_real_, lower = NA_real_, upper = NA_real_)
         mean_v   <- NA_real_
         median_v <- NA_real_
+        min_v    <- NA_real_
+        max_v    <- NA_real_
         abs_g    <- NA_real_
       }
 
@@ -183,6 +189,8 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
         abs_gini      = abs_g,
         mean_wealth   = round(mean_v, 3),
         median_wealth = round(median_v, 3),
+        min_wealth    = round(min_v, 3),
+        max_wealth    = round(max_v, 3),
         stringsAsFactors = FALSE
       )
     }
@@ -220,6 +228,11 @@ inequality_summary <- function(prestige_df, conf_level = 0.80, n_boot = 200) {
 #'   `is_adult_grave` column (age separation was not used).
 #' @return A data frame with columns `cum_pop` (0-1), `cum_wealth` (0-1),
 #'   and `measure` (factor: "combined", "prestige", "TOT+1").
+#' @examples
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' head(lorenz_data(pres))                      # adults (default)
+#' head(lorenz_data(pres, graves = "all"))
 #' @export
 lorenz_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
   graves  <- match.arg(graves)
@@ -242,7 +255,7 @@ lorenz_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
   }
 
   combined <- .lorenz_coords(df$combined_total)
-  combined$measure <- "combined (prestige + \u221Acounts)"
+  combined$measure <- paste0("combined (prestige + ", .sym("sqrt_count"), "s)")
 
   prestige <- .lorenz_coords(df$prestige_total)
   prestige$measure <- "prestige only"
@@ -252,7 +265,7 @@ lorenz_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
 
   out        <- rbind(combined, prestige, tot)
   out$measure <- factor(out$measure,
-                        levels = c("combined (prestige + \u221Acounts)",
+                        levels = c(paste0("combined (prestige + ", .sym("sqrt_count"), "s)"),
                                    "prestige only", "TOT + 1"))
   out
 }
@@ -269,6 +282,10 @@ lorenz_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
 #'   `is_adult_grave` column (age separation was not used).
 #' @return A data frame with columns `wealth_rank` (1-10, factor),
 #'   `total_wealth` (share), `n_in_decile`, `cumulative_wealth`, `mid_point`.
+#' @examples
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' decile_data(pres)   # share of total wealth held by each tenth of the graves
 #' @export
 decile_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
   graves  <- match.arg(graves)
@@ -326,10 +343,11 @@ decile_data <- function(prestige_df, graves = c("adults", "all", "subadults")) {
 #' @param conf_level Numeric CI level (default 0.80). Set NA to skip CI.
 #' @param n_boot Bootstrap replicates (default 2000).
 #' @return Named numeric vector: `gini`, `lower`, `upper`.
-#' @export
 #' @examples
 #' areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
 #' physical_measure_gini(areas)
+#' physical_measure_gini(areas, conf_level = NA)   # no bootstrap interval
+#' @export
 physical_measure_gini <- function(sizes, conf_level = 0.80, n_boot = 2000) {
   sizes <- .drop_invalid_sizes(sizes, "physical_measure_gini")
   if (length(sizes) < 2) stop("Need at least 2 valid (positive) observations.")
@@ -352,10 +370,10 @@ physical_measure_gini <- function(sizes, conf_level = 0.80, n_boot = 2000) {
 #' @param conf_level CI level (default 0.80). Set NA to skip CI.
 #' @param n_boot Bootstrap replicates (default 2000).
 #' @return A list with gini, abs_gini, mean, median, min, max, n.
-#' @export
 #' @examples
 #' areas <- c(40, 55, 80, 120, 200, 350)
 #' physical_measure_summary(areas)
+#' @export
 physical_measure_summary <- function(sizes, conf_level = 0.80, n_boot = 2000) {
   sizes <- .drop_invalid_sizes(sizes, "physical_measure_summary")
   if (length(sizes) < 2) stop("Need at least 2 valid (positive) observations.")

@@ -11,25 +11,56 @@ plot_gini_comparison(
   measure = c("combined", "prestige", "tot"),
   case_order = NULL,
   title = NULL,
-  show_n = TRUE
+  show_n = TRUE,
+  bias_band = FALSE,
+  show_ci = TRUE,
+  top_pct = 10,
+  bottom_pct = 50,
+  atkinson_eps = c(0.5, 1, 2),
+  scales = c("free_x", "free")
 )
 }
 \arguments{
 \item{pipeline_result}{A \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}} result,
-\strong{or} a list of such results to plot together -- e.g.
-\code{list(Counts = count_res, Sizes = phys_res)} to compare count-data and
-physical-measure cases side by side, or several separate
-\code{\link[=count_pipeline]{count_pipeline()}} calls for datasets whose columns didn't fit one
-\code{\link[=count_pipeline]{count_pipeline()}} call. When the data spans more than one dataset --
-whether because a single pipeline call was itself given multiple
-datasets (see \code{data} in \code{\link[=count_pipeline]{count_pipeline()}}), or because a list of
-several results is passed here, or both -- the plot is split into one
-facet panel per dataset, each with its own x-axis (\code{scales = "free_x"}),
-since different datasets may have entirely different group sets.}
+\strong{or} a list of several such results of the \strong{same} data type -- e.g.
+\code{list(SiteA = res_a, SiteB = res_b)} for two \code{\link[=count_pipeline]{count_pipeline()}} calls on
+datasets whose columns didn't fit one \code{\link[=count_pipeline]{count_pipeline()}} call. Mixing a
+count-data result with a physical-measure result (in one call, or
+across two calls passed in a list) raises an error -- their Absolute
+Gini/wealth values are on different, incommensurable scales, so call
+this function once per data type and combine the images yourself
+instead. When the data spans more than one dataset -- whether because a
+single pipeline call was itself given multiple datasets (see \code{data} in
+\code{\link[=count_pipeline]{count_pipeline()}}), or because a list of several results is passed
+here, or both -- the plot is split into one facet panel per dataset,
+each with its own x-axis (\code{scales = "free_x"}), since different
+datasets may have entirely different group sets.}
 
 \item{series}{Character vector selecting which statistics to plot, any
 subset of \code{c("gini", "abs_gini", "mean_wealth", "median_wealth")}.
 Default \code{c("gini", "abs_gini")} (the previous default behaviour).
+Also available: \code{"mean_median_diff"} (mean - median wealth, in wealth
+units; how far a few rich graves pull the mean above the typical grave),
+\code{"mean_median_ratio"} (mean / median; the same skew but unit-free, so
+it can be compared between datasets whose wealth scales differ),
+\code{"max_wealth"} and \code{"min_wealth"}, and \code{"top_share"}: the share of
+total wealth held by the richest \code{top_pct} percent of graves (drawn on
+the 0-1 left axis next to the Gini). A warning is given for cases where
+that top group is fewer than 3 graves (n * top_pct / 100 < 3).
+\code{"bottom_share"}: the share held by the poorest \code{bottom_pct} percent
+(default 50, the poorer half). \code{"atkinson"}: Atkinson index for each
+value in \code{atkinson_eps} (default 0.5, 1, 2); the larger epsilon, the
+more the index reacts to the poor end. Shares and Atkinson indices run
+0-1 and go on the left axis with the Gini. Using a top, a bottom and a
+summary measure together shows whether a ranking of cases holds across
+the whole distribution -- needed when Lorenz curves cross (see
+\code{\link[=plot_lorenz_comparison]{plot_lorenz_comparison()}}).
+\code{"ede"}: equally distributed equivalent wealth, mean x (1 - Atkinson)
+for each value in \code{atkinson_eps} -- the wealth per grave that, shared
+equally, would count as much as the actual distribution. It is in
+wealth units (right axis) and combines level and inequality: a rich
+but very unequal case can come out lower than a poorer, more equal
+one. Only comparable within a dataset (same wealth scale).
 \code{"abs_gini"} is the Absolute Gini (G x mean wealth); \code{"mean_wealth"}/
 \code{"median_wealth"} plot the mean/median wealth (or physical measure)
 value per case as their own point+line series.}
@@ -54,19 +85,58 @@ the order returned by the pipeline. Cases omitted from \code{case_order} are
 appended at the end.}
 
 \item{title}{Optional plot title. For count-data cases, a note on which
-age group is plotted ("(adults only)", "(all graves)", "(subadults
-only)", from \code{graves} above) is appended to this -- it is not a
+age group is plotted ("(adults)", "(all ages)",
+"(subadults)", from \code{graves} above) is appended to this -- it is not a
 default that disappears once you set your own title. No note is added
 when every case is a physical-measure case.}
 
 \item{show_n}{Logical. If TRUE (default), each x-axis tick is labelled
-\code{"<group> (n=<n>)"}, showing the sample size behind each case.}
+\code{"<group>\\n(n=<n>)"} (two lines), showing the sample size behind each case.}
+
+\item{bias_band}{Logical. If TRUE, draws the interquartile range (middle
+50\%) of the category-bias simulations (split and lump runs pooled) as a
+shaded ribbon behind each line, for every series. Gini and Absolute Gini
+need \code{run_bias_sim = TRUE} in \code{\link[=count_pipeline]{count_pipeline()}}; the wealth series (mean,
+median, max, min, mean - median, mean / median) also need
+\code{store_wealth = TRUE} (the default); only drawn where the
+simulation matches the plotted \code{measure} and the grave subset it ran on
+(adults when age separation was used, otherwise all graves). A series
+with a single case gets no ribbon (a ribbon needs two points). Default
+FALSE.}
+
+\item{show_ci}{Logical. If TRUE (default), draws the error bars: the
+bootstrap confidence interval for Gini (at the pipeline's \code{conf_level}),
+and for Absolute Gini the 10-90\% range of the bias simulations. Set
+FALSE to hide them, e.g. when showing \code{bias_band} instead.}
+
+\item{top_pct}{Percentage for \code{series = "top_share"}, e.g. 10 (default)
+for the top 10\% or 1 for the top 1\%. The top group is n * top_pct / 100
+graves; a fractional grave counts with its fraction. Needs n >= 100 /
+top_pct to cover even one whole grave; below about 3 graves the value
+is decided by one or two individual graves and is very unstable (a
+warning lists such cases).}
+
+\item{bottom_pct}{Percentage for \code{series = "bottom_share"} (default 50).}
+
+\item{atkinson_eps}{Inequality-aversion values for \code{series = "atkinson"},
+one series per value (default \code{c(0.5, 1, 2)}).}
+
+\item{scales}{Axis sharing between dataset panels, passed to
+\code{\link[ggplot2:facet_wrap]{ggplot2::facet_wrap()}}: \code{"free_x"} (default; shared y-axis) or
+\code{"free"} (each dataset its own y-axis). Use \code{"free"} for wealth-level
+series (mean, median, max, equal-equivalent wealth...) when the datasets'
+wealth scales are not comparable, so neither dataset is squeezed and no
+level comparison is suggested. Not possible when 0-1 series (Gini,
+shares, Atkinson) and wealth-level series are combined on two axes,
+since the right axis is one transformation for all panels; the y-axis
+then stays shared (with a message).}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 }
 \description{
-Takes the output of \code{\link[=count_pipeline]{count_pipeline()}} and/or \code{\link[=phys_pipeline]{phys_pipeline()}} and
+Takes the output of \code{\link[=count_pipeline]{count_pipeline()}} \strong{or} \code{\link[=phys_pipeline]{phys_pipeline()}} (not a
+mix of both -- see \code{.assert_single_data_type()}) and
 produces a point + line (+ error bar, where available) plot comparing
 one or more statistics across cases, with cases on the x-axis.
 }
@@ -96,18 +166,13 @@ or \code{+ ggplot2::theme(legend.position = "right")}. Adding a
 the component(s) named in that call; everything else is left as-is.
 }
 \examples{
-\dontrun{
-result <- count_pipeline(df, group_col = "phase", id_col = "grave")
-plot_gini_comparison(result)
-plot_gini_comparison(result, series = "gini", graves = "all")
-plot_gini_comparison(result, series = c("gini", "mean_wealth"))
-
-# Multiple datasets, faceted automatically
-result2 <- count_pipeline(list(SiteA = df_a, SiteB = df_b),
-                           group_col = "phase", id_col = "grave")
-plot_gini_comparison(result2)
-
-# Count data and physical-measure data together
-plot_gini_comparison(list(Counts = result, Sizes = phys_result))
-}
+ph  <- read_count_data(example_data_path("phases"))
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE",
+                      run_bias_sim = TRUE, n_bias_sims = 20, progress = FALSE)
+plot_gini_comparison(res)
+plot_gini_comparison(res, series = c("gini", "top_share", "bottom_share"),
+                     top_pct = 10, bottom_pct = 50)
+plot_gini_comparison(res, series = "gini", bias_band = TRUE)
+plot_gini_comparison(res, graves = "subadults")   # subadult graves only
 }

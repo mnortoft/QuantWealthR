@@ -46,9 +46,7 @@ A list with two elements, matching \code{\link[=count_pipeline]{count_pipeline()
 \itemize{
 \item \verb{$summary}: one row per group (per dataset, when multiple), with
 \code{gini}, \code{gini_ci}, \code{abs_gini}, \code{mean_measure}, \code{median_measure},
-\code{min_measure}, \code{max_measure}. When \code{data} is a single data frame,
-this matches the previous \code{qw_pipeline(data_type = "physical")}
-output exactly; when \code{data} is a list, \code{dataset} and \code{case} columns
+\code{min_measure}, \code{max_measure}. When \code{data} is a list, \code{dataset} and \code{case} columns
 are added as in \code{\link[=count_pipeline]{count_pipeline()}}.
 \item \verb{$by_group}: a named list (keyed by \code{case}, or \code{group} for a single
 dataset) with \code{sizes} (the cleaned measure vector) and \code{gini}.
@@ -64,14 +62,12 @@ for every group in every dataset and collects results in one combined
 object, in the same shape \code{\link[=count_pipeline]{count_pipeline()}} returns.
 }
 \examples{
-\dontrun{
+set.seed(1)
 houses <- data.frame(
   phase   = rep(c("Phase 1", "Phase 2"), each = 20),
   house   = paste0("H", 1:40),
   area_m2 = c(rlnorm(20, 4, 0.5), rlnorm(20, 4.5, 0.7))
 )
-result <- phys_pipeline(houses, group_col = "phase",
-                         measure_col = "area_m2")
-result$summary
-}
+res <- phys_pipeline(houses, group_col = "phase", measure_col = "area_m2")
+res$summary
 }

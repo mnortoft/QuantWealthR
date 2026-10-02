@@ -2,18 +2,48 @@
 % Please edit documentation in R/utils.R
 \name{example_data_path}
 \alias{example_data_path}
-\title{Path to the bundled example dataset}
+\title{Path to the bundled example datasets}
 \usage{
-example_data_path()
+example_data_path(which = c("graves", "phases"))
+}
+\arguments{
+\item{which}{\code{"graves"} (default) or \code{"phases"}.}
 }
 \value{
 A character string file path.
 }
 \description{
-Returns the file path to the example CSV included with the package.
-Use with \code{\link[=read_count_data]{read_count_data()}} to load it.
+Returns the file path to one of the two example CSV files included with
+the package. Load them with \code{\link[=read_count_data]{read_count_data()}}.
+}
+\details{
+\itemize{
+\item \code{"graves"} (default): 15 graves from one fictitious site, with grave-good
+counts and \code{adult_count} / \code{subadult_count}. Small enough to inspect by
+eye; used in the examples of the single-dataset functions.
+\item \code{"phases"}: 220 \strong{simulated} graves from two fictitious cultures, \code{A}
+and \code{B}, from five fictitious sites each (\code{Site}, with \code{lat} / \code{lng}),
+with three phases each (\code{phase}, e.g. \code{"A1"}), a phase date
+(\code{date_BCE}, negative = BCE), how each grave was dated
+(\code{dating_method}), age counts, and 17 grave-good types (prefixes: \code{c_}
+pottery, \code{f_} flint, \code{s_} stone, \code{cu_} copper, \code{o_} ornaments, \code{b_}
+bone, \code{CON_} construction; culture A records no constructions). 12
+graves of culture A have no phase (\code{dating_method = "random imputation"}), for \code{\link[=impute_phases]{impute_phases()}}. Used for the multi-phase and
+cross-culture functions (\code{\link[=count_pipeline]{count_pipeline()}}, \code{\link[=plot_gini_timeline]{plot_gini_timeline()}},
+\code{\link[=compare_cases]{compare_cases()}}, \code{\link[=multiverse_compare]{multiverse_compare()}}, ...). The values are random,
+not real archaeological data; the script that made them is in the
+package source (\code{data-raw/make_phases_example.R}).
+}
 }
 \examples{
-path <- example_data_path()
-df <- read_count_data(path)
+# Single site
+df <- read_count_data(example_data_path())
+head(df)
+
+# Two simulated cultures with phases
+ph <- read_count_data(example_data_path("phases"))
+table(ph$culture, ph$phase, useNA = "ifany")
+
+# Split into one data frame per culture, as count_pipeline() expects
+cultures <- split(ph, ph$culture)
 }

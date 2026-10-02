@@ -7,11 +7,16 @@
 print_pipeline_summary(pipeline_result, digits = 3)
 }
 \arguments{
-\item{pipeline_result}{Output from \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}}
-(or the deprecated \code{\link[=qw_pipeline]{qw_pipeline()}}).}
+\item{pipeline_result}{Output from \code{\link[=count_pipeline]{count_pipeline()}} or \code{\link[=phys_pipeline]{phys_pipeline()}}.}
 
 \item{digits}{Number of decimal places (default 3).}
 }
 \description{
 Print a formatted summary of count_pipeline()/phys_pipeline() results
+}
+\examples{
+ph  <- read_count_data(example_data_path("phases"))
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE", progress = FALSE)
+print_pipeline_summary(res)
 }

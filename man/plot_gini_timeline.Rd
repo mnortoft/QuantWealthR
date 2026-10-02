@@ -6,12 +6,22 @@
 \usage{
 plot_gini_timeline(
   pipeline_result,
-  series = c("gini", "abs_gini", "mean_wealth", "median_wealth"),
+  series = c("gini", "abs_gini", "mean_wealth", "median_wealth", "mean_median_diff",
+    "mean_median_ratio", "max_wealth", "min_wealth", "top_share", "bottom_share",
+    "atkinson", "ede"),
   graves = c("adults", "all", "subadults"),
   measure = c("combined", "prestige", "tot"),
   mode = c("separate", "combined"),
   series_sep = "_",
-  title = NULL
+  title = NULL,
+  bias_band = FALSE,
+  show_ci = TRUE,
+  top_pct = 10,
+  layout = c("panels", "dual_axis"),
+  bottom_pct = 50,
+  atkinson_eps = c(0.5, 1, 2),
+  bounded_axis = c("fixed", "free"),
+  panel_groups = NULL
 )
 }
 \arguments{
@@ -19,13 +29,13 @@ plot_gini_timeline(
 a named list of such results), built with \code{date_col} set. See
 \code{\link[=plot_gini_comparison]{plot_gini_comparison()}} for the general shape this accepts.}
 
-\item{series}{\strong{A single} statistic to plot -- one of \code{"gini"}
-(default), \code{"abs_gini"}, \code{"mean_wealth"}, \code{"median_wealth"}. Unlike
-\code{\link[=plot_gini_comparison]{plot_gini_comparison()}}, this does not accept more than one at a
-time: with a continuous date axis there's no categorical x position to
-anchor a second, rescaled axis to, so plotting two differently-scaled
-series together would just look like noise. Call this function once
-per statistic if you need more than one.}
+\item{series}{One or more statistics to plot: \code{"gini"} (default),
+\code{"abs_gini"}, \code{"mean_wealth"}, \code{"median_wealth"}, \code{"mean_median_diff"},
+\code{"mean_median_ratio"}, \code{"max_wealth"}, \code{"min_wealth"}, \code{"top_share"}
+(with \code{top_pct}), \code{"bottom_share"} (with \code{bottom_pct}), \code{"atkinson"}
+(with \code{atkinson_eps}; one line per value), \code{"ede"} (equal-equivalent
+wealth, with \code{atkinson_eps}); see \code{\link[=plot_gini_comparison]{plot_gini_comparison()}}. With more than one,
+\code{layout} decides how they are combined in the one figure.}
 
 \item{graves}{For count-data cases: \code{"adults"} (default), \code{"all"}, or
 \code{"subadults"}. Ignored for physical-measure cases. See
@@ -53,6 +63,61 @@ Default \code{"_"}. Ignored when the series is taken from a dataset name
 instead.}
 
 \item{title}{Optional plot title.}
+
+\item{bias_band}{Logical. If TRUE, draws the interquartile range (middle
+50\%) of the category-bias simulations (split and lump runs pooled) as a
+shaded ribbon behind each line, for every series. Gini and Absolute Gini
+need \code{run_bias_sim = TRUE} in \code{\link[=count_pipeline]{count_pipeline()}}; the wealth series (mean,
+median, max, min, mean - median, mean / median) also need
+\code{store_wealth = TRUE} (the default); only drawn where the
+simulation matches the plotted \code{measure} and the grave subset it ran on
+(adults when age separation was used, otherwise all graves). A series
+with a single case gets no ribbon (a ribbon needs two points). Default
+FALSE.}
+
+\item{show_ci}{Logical. If TRUE (default), draws the error bars: the
+bootstrap confidence interval for Gini (at the pipeline's \code{conf_level}),
+and for Absolute Gini the 10-90\% range of the bias simulations. Set
+FALSE to hide them, e.g. when showing \code{bias_band} instead.}
+
+\item{top_pct}{Percentage for \code{series = "top_share"}, e.g. 10 (default)
+for the top 10\% or 1 for the top 1\%. The top group is n * top_pct / 100
+graves; a fractional grave counts with its fraction. Needs n >= 100 /
+top_pct to cover even one whole grave; below about 3 graves the value
+is decided by one or two individual graves and is very unstable (a
+warning lists such cases).}
+
+\item{layout}{Only used with more than one \code{series}. \code{"panels"}
+(default): one panel per statistic, stacked, sharing the date axis,
+each with its own y-axis (Gini and top share fixed at 0-1) -- still one
+figure (panels a, b, ...). \code{"dual_axis"}: all statistics in one panel;
+the first \code{series} uses the left axis, all others are rescaled together
+onto it and read off the right axis; line type and point shape
+distinguish the statistics, colour the cultures/datasets. With a dual
+axis the rescaling decides where lines cross, so crossings and relative
+heights between the two sides carry no meaning (said in the caption).}
+
+\item{bottom_pct}{Percentage for \code{series = "bottom_share"} (default 50).}
+
+\item{atkinson_eps}{Inequality-aversion values for \code{series = "atkinson"},
+one series per value (default \code{c(0.5, 1, 2)}).}
+
+\item{bounded_axis}{\code{"fixed"} (default): bounded statistics (Gini, top
+and bottom share, Atkinson) are drawn on their full 0-1 range, so
+heights can be compared directly and small differences are not
+exaggerated. \code{"free"}: their y-axis is zoomed to the data, which makes
+small differences visible; the axis then does not start at 0, and a
+note saying so is added to the caption. With \code{layout = "dual_axis"}
+only the left (first) series is affected.}
+
+\item{panel_groups}{Optional named list that puts several statistics in
+one panel, e.g. \code{list("Wealth per grave" = c("median_wealth", "mean_wealth"), "Wealth shares" = c("bottom_share", "top_share"))}.
+Names become the panel titles; values are entries of \code{series}.
+Statistics in a panel share its y-axis and are told apart by line type
+and point shape (colour still shows the dataset/culture). Statistics in
+\code{series} but in no group get a panel of their own. Group only
+statistics with the same unit: wealth levels with wealth levels, shares
+and indices (0-1) with each other. Used with \code{layout = "panels"}.}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object, with calendar dates formatted as
@@ -99,23 +164,17 @@ name.
 }
 }
 \examples{
-\dontrun{
-# Single dataset, culture encoded in the group label, with a date column
-df <- data.frame(
-  case  = c("CWC_early", "CWC_middle", "CWC_late",
-            "Unetice_early", "Unetice_middle", "Unetice_late"),
-  date  = c(-2800, -2600, -2400, -2300, -2100, -1900)
-)
-# (each "case" here would really be a phase with many graves; date_col
-# is a per-row column in the real grave-level data, not per phase)
-result <- count_pipeline(graves_df, group_col = "phase",
-                          date_col = "date")
-plot_gini_timeline(result)                       # series = "CWC"/"Unetice"
-plot_gini_timeline(result, mode = "combined")     # one trend line, if dates don't overlap
+ph  <- read_count_data(example_data_path("phases"))
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE",
+                      run_bias_sim = TRUE, n_bias_sims = 20, progress = FALSE)
+# Gini over time, one line per culture, with the bias-simulation band
+plot_gini_timeline(res, bias_band = TRUE)
 
-# Multiple datasets -- dataset name is the series, no parsing needed
-result2 <- count_pipeline(list(CWC = cwc_df, Unetice = un_df),
-                           group_col = "phase", date_col = "date")
-plot_gini_timeline(result2)
-}
+# Several statistics, one panel each; zoom the 0-1 axes to the data
+plot_gini_timeline(res, series = c("gini", "top_share", "median_wealth", "mean_wealth"),
+                   bias_band = TRUE, bounded_axis = "free")
+
+# All statistics in one panel with a second axis
+plot_gini_timeline(res, series = c("gini", "median_wealth"), layout = "dual_axis")
 }

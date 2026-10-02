@@ -27,11 +27,13 @@ For single-column physical measure data (e.g. house area), use
 \code{\link[=read_physical_data]{read_physical_data()}} instead.
 }
 \examples{
-# Load the bundled example dataset
+# The bundled example data (15 graves)
 df <- read_count_data(example_data_path())
+str(df)
 
+# Your own file: CSV (separator detected automatically) or Excel
 \dontrun{
-# Or load your own file
 df <- read_count_data("my_graves.csv")
+df <- read_count_data("my_graves.xlsx")   # needs the readxl package
 }
 }

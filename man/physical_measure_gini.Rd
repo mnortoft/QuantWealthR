@@ -23,4 +23,5 @@ Gini coefficient for physical measure data (e.g. house floor area)
 \examples{
 areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
 physical_measure_gini(areas)
+physical_measure_gini(areas, conf_level = NA)   # no bootstrap interval
 }

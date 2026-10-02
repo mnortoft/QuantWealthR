@@ -38,8 +38,7 @@ Produces a boxplot of TOT scores per type with Bayesian credible intervals
 (or mean +/- SD for the mean method) overlaid.
 }
 \examples{
-\dontrun{
-pres <- calculate_prestige(my_df)
-plot_prestige(pres)
-}
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+plot_prestige(pres, case = "Example site")
 }

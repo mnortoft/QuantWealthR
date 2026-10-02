@@ -22,8 +22,11 @@ by passing \code{df$area_m2} to \code{\link[=physical_measure_summary]{physical_
 to \code{\link[=phys_pipeline]{phys_pipeline()}}.
 }
 \examples{
-\dontrun{
-houses <- read_physical_data("my_houses.csv")
-physical_measure_summary(houses$area_m2)
-}
+# Write a small house table to a temporary file and read it back
+houses <- data.frame(house = paste0("H", 1:8),
+                     area_m2 = c(40, 55, 60, 75, 80, 90, 120, 350))
+f <- tempfile(fileext = ".csv")
+write.csv(houses, f, row.names = FALSE)
+h <- read_physical_data(f)
+physical_measure_summary(h$area_m2)
 }

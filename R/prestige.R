@@ -11,15 +11,12 @@
 #' @param df A data frame. First column = unit ID; remaining columns = numeric
 #'   count data (use [identify_count_columns()] to check column selection).
 #' @return A data frame with columns `Grave_ID`, `TOT`, and `Type`.
-#' @export
 #' @examples
-#' df <- data.frame(
-#'   id     = 1:6,
-#'   sword  = c(1, NA, 2, NA, 1, NA),
-#'   shield = c(NA, 1, 1, NA, NA, 1),
-#'   bronze = c(1, NA, NA, 1, 1, NA)
-#' )
-#' get_TOT_range(df)
+#' df  <- read_count_data(example_data_path())
+#' cnt <- df[, c("Grave_ID", identify_count_columns(df))]   # ID + type counts only
+#' tot <- get_TOT_range(cnt)
+#' head(tot)   # one row per type x grave containing it, with that grave's TOT
+#' @export
 get_TOT_range <- function(df) {
   if (ncol(df) == 2) {
     df[, 2] <- as.numeric(df[, 2])
@@ -52,6 +49,11 @@ get_TOT_range <- function(df) {
 #' Compute mean TOT per grave good type
 #' @param tot_range Output from [get_TOT_range()].
 #' @return Data frame with columns `Type` and `mean`.
+#' @examples
+#' df  <- read_count_data(example_data_path())
+#' cnt <- df[, c("Grave_ID", identify_count_columns(df))]
+#' tot <- get_TOT_range(cnt)
+#' get_TOT_means(tot)   # mean TOT of the graves containing each type
 #' @export
 get_TOT_means <- function(tot_range) {
   tot_range |>
@@ -88,16 +90,12 @@ get_TOT_means <- function(tot_range) {
 #' @param tot_range Output from [get_TOT_range()].
 #' @return A data frame with columns `Type`, `bayes_est`, `lowerCI`,
 #'   `upperCI`, `prior_type`, `item_n`, `observed_mean`.
-#' @export
 #' @examples
-#' df <- data.frame(
-#'   id = 1:10,
-#'   sword  = c(1, NA, 1, 1, NA, NA, 1, NA, 1, NA),
-#'   shield = c(1, 1, NA, 1, 1, NA, NA, NA, NA, 1),
-#'   bronze = c(NA, NA, 1, NA, NA, 1, NA, NA, NA, NA)
-#' )
-#' tot <- get_TOT_range(df)
-#' bayesian_prestige(tot)
+#' df  <- read_count_data(example_data_path())
+#' cnt <- df[, c("Grave_ID", identify_count_columns(df))]
+#' tot <- get_TOT_range(cnt)
+#' bayesian_prestige(tot)   # shrinks rare types towards the overall mean
+#' @export
 bayesian_prestige <- function(tot_range) {
   types    <- unique(tot_range$Type)
   types    <- types[types != "TOT"]
@@ -189,6 +187,11 @@ bayesian_prestige <- function(tot_range) {
 #' @param df The original data frame (first column = ID, rest = counts).
 #' @return The data frame with grave good columns replaced by prestige weights
 #'   and a `prestige_total` column appended.
+#' @examples
+#' df    <- read_count_data(example_data_path())
+#' cnt   <- df[, c("Grave_ID", identify_count_columns(df))]
+#' means <- get_TOT_means(get_TOT_range(cnt))
+#' head(apply_prestige_mean(means, cnt))   # each present type replaced by its value
 #' @export
 apply_prestige_mean <- function(means_df, df) {
   values <- stats::setNames(means_df$mean, means_df$Type)
@@ -221,6 +224,11 @@ apply_prestige_mean <- function(means_df, df) {
 #' @param df The original data frame (first column = ID, rest = counts).
 #' @return Data frame with grave good columns as Bayesian prestige weights
 #'   and a `prestige_total` column appended.
+#' @examples
+#' df    <- read_count_data(example_data_path())
+#' cnt   <- df[, c("Grave_ID", identify_count_columns(df))]
+#' bayes <- bayesian_prestige(get_TOT_range(cnt))
+#' head(apply_prestige_bayesian(bayes, cnt))
 #' @export
 apply_prestige_bayesian <- function(bayes_df, df) {
   out <- df
@@ -245,6 +253,10 @@ apply_prestige_bayesian <- function(bayes_df, df) {
 #' @param count_cols Character vector of column names to include (defaults to
 #'   all numeric columns identified by [identify_count_columns()]).
 #' @return Numeric vector of length `nrow(df)`.
+#' @examples
+#' df <- read_count_data(example_data_path())
+#' sqrt_count_bonus(df)   # extra wealth for several items of the same type
+#' # e.g. 25 beads add sqrt(25) - 1 = 4, a single item adds 0
 #' @export
 sqrt_count_bonus <- function(df, count_cols = NULL) {
   if (is.null(count_cols)) count_cols <- identify_count_columns(df)
@@ -281,16 +293,14 @@ sqrt_count_bonus <- function(df, count_cols = NULL) {
 #' @return The original data frame plus columns `raw_TOT`, `prestige_total`,
 #'   `combined_total`, and (if age separation is active) `is_adult_grave`,
 #'   `is_subadult_only`.
-#' @export
 #' @examples
-#' df <- data.frame(
-#'   id     = paste0("G", 1:8),
-#'   sword  = c(1, NA, 2, NA, 1, NA, 1, NA),
-#'   shield = c(NA, 1, 1, NA, NA, 1, NA, 1),
-#'   bronze = c(1, NA, NA, 1, 1, NA, NA, NA)
-#' )
-#' result <- calculate_prestige(df)
-#' result[, c("id", "raw_TOT", "prestige_total", "combined_total")]
+#' df   <- read_count_data(example_data_path())
+#' pres <- calculate_prestige(df)
+#' pres[, c("Grave_ID", "raw_TOT", "prestige_total", "combined_total")]
+#'
+#' # Mean instead of Bayesian type values; no separate treatment of children
+#' pres_m <- calculate_prestige(df, method = "mean", use_age_sep = FALSE)
+#' @export
 calculate_prestige <- function(df, method = "bayesian", use_age_sep = TRUE) {
 
   method <- match.arg(method, c("bayesian", "mean"))

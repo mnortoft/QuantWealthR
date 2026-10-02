@@ -23,11 +23,16 @@ without distorting the lower tail.}
 Named numeric vector: \code{gini}, and (if CI computed) \code{lower}, \code{upper}.
 }
 \description{
-A thin wrapper around \code{\link[DescTools:Gini]{DescTools::Gini()}} that selects the confidence
+A thin wrapper around \code{DescTools::Gini()} that selects the confidence
 interval method automatically: bootstrap CIs for n <= 500, point estimate
 only for larger samples.
 }
 \examples{
 wealth <- c(1, 1, 2, 3, 5, 8, 13, 21)
 calculate_gini(wealth)
+
+# From grave wealth
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+calculate_gini(pres$combined_total)
 }

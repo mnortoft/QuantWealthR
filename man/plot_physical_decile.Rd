@@ -29,3 +29,7 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 \description{
 Plot decile distribution for physical measure data
 }
+\examples{
+areas <- c(40, 55, 60, 75, 80, 90, 120, 150, 200, 350)
+plot_physical_decile(areas, data_type = "House floor area", unit = "m\u00b2")
+}

@@ -15,11 +15,11 @@
 # If you add a new ggplot2/dplyr pipeline that references a column by bare
 # name and R CMD check flags it, add the column name to this list rather than
 # silencing the warning some other way.
-utils::globalVariables(c(
+utils::globalVariables(c("line_group", "panel", "long", "group", "size_val", "lng", "lat",
   "Direction", "Gini", "Grave_ID", "TOT", "Type", "Type_display", "Value",
-  "abs_g", "bayes_est", "case", "case_label", "combined_total", "cum_pop", "cum_wealth",
+  "abs_g", "bayes_est", "bias_hi", "bias_lo", "dataset", "case", "case_label", "combined_total", "cum_pop", "cum_wealth",
   "cumulative_wealth", "direction", "gini", "iqr_high", "iqr_low", "is_sub",
   "label", "lower", "lowerCI", "measure", "mid_point", "n_in_decile",
   "orig_gini", "series_group", "sim_id", "total_wealth", "upper", "upperCI",
-  "value", "wealth_rank", "wealth_share", "x", "x_pos", "y_pos"
+  "case_a", "case_b", "colour", "comparison", "diff", "lower_95", "median_diff", "txt", "upper_95", "edge_zone", "share", "type_key", "value", "wealth_rank", "wealth_share", "x", "x_pos", "y_pos"
 ))

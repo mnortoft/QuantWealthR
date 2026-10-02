@@ -18,7 +18,7 @@ Character string such as "2500 - 2200 BCE".
 Format BCE/CE year range as a readable string
 }
 \examples{
-format_dates(-2500, -2200)
-format_dates(-100, 300)
+format_dates(-2500, -2200)   # "2500-2200 BCE"
+format_dates(-100, 300)      # range crossing year 0
 format_dates(1000, 1200)
 }

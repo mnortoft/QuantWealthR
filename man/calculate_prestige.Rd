@@ -40,12 +40,10 @@ modelling assumption, not a missing-data error, and a \code{warning()} is
 issued whenever it is applied so it isn't silent.
 }
 \examples{
-df <- data.frame(
-  id     = paste0("G", 1:8),
-  sword  = c(1, NA, 2, NA, 1, NA, 1, NA),
-  shield = c(NA, 1, 1, NA, NA, 1, NA, 1),
-  bronze = c(1, NA, NA, 1, 1, NA, NA, NA)
-)
-result <- calculate_prestige(df)
-result[, c("id", "raw_TOT", "prestige_total", "combined_total")]
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+pres[, c("Grave_ID", "raw_TOT", "prestige_total", "combined_total")]
+
+# Mean instead of Bayesian type values; no separate treatment of children
+pres_m <- calculate_prestige(df, method = "mean", use_age_sep = FALSE)
 }

@@ -34,7 +34,7 @@ plot_density(pres)            # wealth density curves
 plot_decile(pres)             # decile distribution
 
 # 5. Category bias simulation
-bias <- simulate_category_bias(df, n_sims = 200)
+bias <- simulate_category_bias(df, pres, n_sims = 200)
 plot_bias(bias)
 }\if{html}{\out{</div>}}
 }
@@ -47,42 +47,99 @@ plot_physical_lorenz(sizes)
 }\if{html}{\out{</div>}}
 }
 
-\subsection{Batch pipeline across multiple periods / phases}{
+\subsection{Several phases and datasets}{
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{result <- count_pipeline(df, group_col = "phase", id_col = "grave_id")
-result$summary    # data frame with one row per phase
+\if{html}{\out{<div class="sourceCode">}}\preformatted{ph  <- read_count_data(example_data_path("phases"))   # simulated example
+res <- count_pipeline(split(ph, ph$culture), group_col = "phase",
+                      id_col = "Grave_ID", date_col = "date_BCE",
+                      run_bias_sim = TRUE)
+res$summary                                   # one row per case
+plot_gini_timeline(res, series = c("gini", "top_share", "median_wealth"),
+                   bias_band = TRUE)
+compare_cases(res, "A: A2", "B: B2")          # is A2 more unequal than B2?
 }\if{html}{\out{</div>}}
 }
 
-\subsection{Key functions}{\tabular{ll}{
+\subsection{Functions by task}{
+
+\strong{Reading data}\tabular{ll}{
    Function \tab Purpose \cr
-   \code{\link[=calculate_prestige]{calculate_prestige()}} \tab Prestige values + combined wealth \cr
-   \code{\link[=inequality_summary]{inequality_summary()}} \tab Gini coefficients and wealth statistics \cr
-   \code{\link[=lorenz_data]{lorenz_data()}} \tab Lorenz curve data frame \cr
-   \code{\link[=decile_data]{decile_data()}} \tab Decile wealth distribution \cr
-   \code{\link[=physical_measure_gini]{physical_measure_gini()}} \tab Gini for continuous measure data \cr
-   \code{\link[=simulate_category_bias]{simulate_category_bias()}} \tab Monte Carlo bias simulation \cr
-   \code{\link[=count_pipeline]{count_pipeline()}} \tab Batch analysis across groups (count data) \cr
-   \code{\link[=phys_pipeline]{phys_pipeline()}} \tab Batch analysis across groups (physical measures) \cr
-   \code{\link[=plot_prestige]{plot_prestige()}} \tab Prestige boxplot (ggplot2) \cr
-   \code{\link[=plot_lorenz]{plot_lorenz()}} \tab Lorenz curve (ggplot2) \cr
-   \code{\link[=plot_density]{plot_density()}} \tab Density curves (ggplot2) \cr
-   \code{\link[=plot_decile]{plot_decile()}} \tab Decile chart (ggplot2) \cr
-   \code{\link[=plot_bias]{plot_bias()}} \tab Bias simulation (ggplot2) \cr
-   \code{\link[=plot_bias_wealth_density]{plot_bias_wealth_density()}} \tab Per-grave wealth density across simulations (ggplot2) \cr
+   \code{\link[=read_count_data]{read_count_data()}} \tab Read grave-good counts (CSV/Excel) \cr
+   \code{\link[=read_physical_data]{read_physical_data()}} \tab Read physical measures (e.g. house areas) \cr
+   \code{\link[=example_data_path]{example_data_path()}} \tab Paths to the bundled example data \cr
+   \code{\link[=identify_count_columns]{identify_count_columns()}} \tab Which columns count as grave goods \cr
+   \code{\link[=impute_phases]{impute_phases()}} \tab Multiple imputation of phases for undated graves \cr
+   \code{\link[=add_soil_preservation]{add_soil_preservation()}} \tab Soil preservation scores at each grave (user-supplied ESDAC map) \cr
 }
 
+
+\strong{Wealth of single graves}\tabular{ll}{
+   Function \tab Purpose \cr
+   \code{\link[=calculate_prestige]{calculate_prestige()}} \tab Type values, prestige and combined wealth per grave \cr
+   \code{\link[=get_TOT_range]{get_TOT_range()}}, \code{\link[=get_TOT_means]{get_TOT_means()}}, \code{\link[=bayesian_prestige]{bayesian_prestige()}} \tab The steps behind the type values \cr
+   \code{\link[=apply_prestige_mean]{apply_prestige_mean()}}, \code{\link[=apply_prestige_bayesian]{apply_prestige_bayesian()}}, \code{\link[=sqrt_count_bonus]{sqrt_count_bonus()}} \tab Applying type values and the count bonus \cr
+}
+
+
+\strong{Inequality of one assemblage}\tabular{ll}{
+   Function \tab Purpose \cr
+   \code{\link[=inequality_summary]{inequality_summary()}} \tab Gini (relative and absolute) and wealth statistics \cr
+   \code{\link[=calculate_gini]{calculate_gini()}} \tab Gini with bootstrap interval \cr
+   \code{\link[=lorenz_data]{lorenz_data()}}, \code{\link[=decile_data]{decile_data()}} \tab Data behind the Lorenz and decile plots \cr
+   \code{\link[=physical_measure_gini]{physical_measure_gini()}}, \code{\link[=physical_measure_summary]{physical_measure_summary()}} \tab The same for physical measures \cr
+   \code{\link[=plot_prestige]{plot_prestige()}}, \code{\link[=plot_lorenz]{plot_lorenz()}}, \code{\link[=plot_density]{plot_density()}}, \code{\link[=plot_decile]{plot_decile()}} \tab Plots of one assemblage \cr
+   \code{\link[=plot_physical_lorenz]{plot_physical_lorenz()}}, \code{\link[=plot_physical_density]{plot_physical_density()}}, \code{\link[=plot_physical_decile]{plot_physical_decile()}} \tab Plots for physical measures \cr
+}
+
+
+\strong{Recording bias}\tabular{ll}{
+   Function \tab Purpose \cr
+   \code{\link[=simulate_category_bias]{simulate_category_bias()}} \tab Random splitting and lumping of types \cr
+   \code{\link[=plot_bias]{plot_bias()}}, \code{\link[=plot_bias_groups]{plot_bias_groups()}} \tab Gini distributions across simulations \cr
+   \code{\link[=plot_bias_wealth_density]{plot_bias_wealth_density()}}, \code{\link[=plot_bias_wealth_density_groups]{plot_bias_wealth_density_groups()}}, \code{\link[=plot_bias_wealth_lorenz]{plot_bias_wealth_lorenz()}} \tab Wealth distributions across simulations \cr
+}
+
+
+\strong{Several phases or datasets}\tabular{ll}{
+   Function \tab Purpose \cr
+   \code{\link[=count_pipeline]{count_pipeline()}}, \code{\link[=phys_pipeline]{phys_pipeline()}} \tab Run everything per phase/group \cr
+   \code{\link[=print_pipeline_summary]{print_pipeline_summary()}}, \code{\link[=cases_summary]{cases_summary()}} \tab Summary tables \cr
+   \code{\link[=plot_gini_comparison]{plot_gini_comparison()}}, \code{\link[=plot_gini_timeline]{plot_gini_timeline()}} \tab Inequality and wealth statistics per case / over time \cr
+   \code{\link[=plot_lorenz_comparison]{plot_lorenz_comparison()}} \tab Lorenz curves with crossings marked \cr
+   \code{\link[=plot_wealth_boxplot]{plot_wealth_boxplot()}}, \code{\link[=plot_decile_groups]{plot_decile_groups()}}, \code{\link[=plot_type_prevalence]{plot_type_prevalence()}} \tab Distributions and types per case \cr
+   \code{\link[=plot_case_map]{plot_case_map()}} \tab Map of the sites or graves of each case \cr
+}
+
+
+\strong{Comparing cultures from different sources}\tabular{ll}{
+   Function \tab Purpose \cr
+   \code{\link[=compare_cases]{compare_cases()}}, \code{\link[=plot_compare_cases]{plot_compare_cases()}} \tab Is case A more unequal than case B, with sampling, recording and imputation uncertainty \cr
+   \code{\link[=multiverse_compare]{multiverse_compare()}}, \code{\link[=plot_multiverse]{plot_multiverse()}} \tab How the answer depends on analysis choices \cr
+   \code{\link[=has_age_info]{has_age_info()}} \tab Row filter: graves with recorded age (for \code{row_filters}) \cr
+}
+
+}
+
+\subsection{Symbols in plot labels and PDF output}{
+
+Some plot labels contain symbols (epsilon, square root, arrow) that the
+standard \code{\link[grDevices:pdf]{grDevices::pdf()}} device cannot draw. Save PDF figures with
+\code{ggplot2::ggsave(..., device = grDevices::cairo_pdf)}, or set
+\code{options(QuantWealthR.unicode = FALSE)} before creating the plots to get
+ASCII labels (\code{e}, \code{sqrt(count)}, \verb{->}). While a \code{pdf()} device is open,
+the ASCII labels are used automatically.
 }
 
 \subsection{Tutorial vignette}{
 
-A step-by-step introduction is available as a package vignette:
+Two step-by-step vignettes come with the package:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{vignette("introduction", package = "QuantWealthR")
+\if{html}{\out{<div class="sourceCode">}}\preformatted{vignette("introduction", package = "QuantWealthR")  # one assemblage, step by step
+vignette("comparing", package = "QuantWealthR")     # phases, cultures, uncertainty
 }\if{html}{\out{</div>}}
 
-The vignette ships with the installed and CRAN versions of the package. If
-you installed from source and it is missing, rebuild and install it with:
+The vignettes ship with the installed and CRAN versions of the package. If
+you installed from source and they are missing, rebuild and install it with:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{devtools::install(build_vignettes = TRUE)
 browseVignettes("QuantWealthR")
@@ -92,7 +149,7 @@ browseVignettes("QuantWealthR")
 \seealso{
 \itemize{
 \item QuantWealth web app: \url{https://quantwealth.eu}
-\item Accompanying paper: \url{https://doi.org/10.31235/osf.io/wzcqy_v2}
+\item Accompanying paper: \url{https://doi.org/10.31235/osf.io/wzcqy_v3}
 }
 }
 \author{

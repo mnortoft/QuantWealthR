@@ -18,6 +18,7 @@ Returns names of columns that are purely numeric and not metadata columns
 always excluded.
 }
 \examples{
-df <- data.frame(id = 1:5, sword = c(1,0,2,0,1), shield = c(0,1,0,1,0))
-identify_count_columns(df)
+df <- data.frame(id = 1:5, sword = c(1, 0, 2, 0, 1), shield = c(0, 1, 0, 1, 0),
+                 adult_count = 1, site = "X")
+identify_count_columns(df)   # "sword" "shield": IDs, text and age counts are left out
 }

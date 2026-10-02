@@ -7,9 +7,12 @@
 plot_bias(bias_result, case = NULL, dates = NULL, .title_override = NULL)
 }
 \arguments{
-\item{bias_result}{Output from \code{\link[=simulate_category_bias]{simulate_category_bias()}}.}
+\item{bias_result}{Output from \code{\link[=simulate_category_bias]{simulate_category_bias()}}, or one group
+from \code{count_pipeline()$by_group} (its \verb{$bias} is used).}
 
-\item{case}{Character. Case/period label for the title.}
+\item{case}{Character. Case/period label for the title. When
+\code{bias_result} is a pipeline group and \code{case} is NULL, the group's label
+is used.}
 
 \item{dates}{Character. Date range string.}
 
@@ -27,4 +30,11 @@ call \code{\link[=simulate_category_bias]{simulate_category_bias()}} via its \co
 function just labels which subset was used in the title. To compare
 adults vs subadults, run \code{\link[=simulate_category_bias]{simulate_category_bias()}} twice with different
 \code{graves} values and plot each result separately.
+}
+\examples{
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+set.seed(1)
+bias <- simulate_category_bias(df, pres, n_sims = 50)
+plot_bias(bias, case = "Example site", dates = format_dates(-2800, -2500))
 }

@@ -14,14 +14,17 @@ plot_bias_wealth_lorenz(
 }
 \arguments{
 \item{bias_result}{Output from \code{\link[=simulate_category_bias]{simulate_category_bias()}} run with
-\code{store_wealth = TRUE}.}
+\code{store_wealth = TRUE}, or one group from \code{count_pipeline()$by_group}
+(its \verb{$bias} is used).}
 
 \item{measure}{Which wealth measure(s) to show: \code{"all"} (default, facets
 across all four measures used in \code{\link[=plot_bias]{plot_bias()}}), \code{"combined"}
 (prestige + sqrt-count bonus -- the main wealth measure), \code{"prestige"}
 (prestige only), or \code{"tot"} (TOT + 1).}
 
-\item{case}{Character. Case label added to the title.}
+\item{case}{Character. Case label added to the title. When
+\code{bias_result} is a pipeline group and \code{case} is NULL, the group's label
+is used.}
 
 \item{dates}{Character. Date range string added to the title.}
 
@@ -59,10 +62,9 @@ comparison against the simulated split/lump envelope. The grey diagonal
 is the line of perfect equality, as usual for Lorenz curves.
 }
 \examples{
-\dontrun{
-df    <- read_count_data(example_data_path())
-bias_w <- simulate_category_bias(df, n_sims = 100, store_wealth = TRUE)
-plot_bias_wealth_lorenz(bias_w)
-plot_bias_wealth_lorenz(bias_w, measure = "combined")
-}
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+set.seed(1)
+bias <- simulate_category_bias(df, pres, n_sims = 30)
+plot_bias_wealth_lorenz(bias, measure = "combined")
 }

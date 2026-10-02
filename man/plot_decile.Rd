@@ -28,3 +28,8 @@ A \link[ggplot2:ggplot]{ggplot2::ggplot} object.
 \description{
 Plot decile wealth distribution
 }
+\examples{
+df   <- read_count_data(example_data_path())
+pres <- calculate_prestige(df)
+plot_decile(pres, case = "Example site")
+}

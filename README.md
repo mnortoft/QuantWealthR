@@ -251,7 +251,7 @@ Artefact categories are researcher-defined choices. The simulation tests whether
 
 If you use QuantWealthR in published research, please cite the accompanying paper:
 
-> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. https://doi.org/10.31235/osf.io/wzcqy_v2
+> Nørtoft, M. (2024). QuantWealth — a tool for multivariate wealth display and inequality analysis in archaeology. *SocArXiv*. https://doi.org/10.31235/osf.io/wzcqy_v3
 
 ---
 

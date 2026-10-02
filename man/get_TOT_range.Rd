@@ -19,11 +19,8 @@ present) of every grave that contains that type.  This long-format table is
 the basis for all prestige calculations.
 }
 \examples{
-df <- data.frame(
-  id     = 1:6,
-  sword  = c(1, NA, 2, NA, 1, NA),
-  shield = c(NA, 1, 1, NA, NA, 1),
-  bronze = c(1, NA, NA, 1, 1, NA)
-)
-get_TOT_range(df)
+df  <- read_count_data(example_data_path())
+cnt <- df[, c("Grave_ID", identify_count_columns(df))]   # ID + type counts only
+tot <- get_TOT_range(cnt)
+head(tot)   # one row per type x grave containing it, with that grave's TOT
 }
